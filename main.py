@@ -35,10 +35,10 @@ def build_records(urls_with_source, start_index, max_count):
         if classification.get("country"):
             record["國家"] = classification.get("country")
 
-            record["AI分類"] = classification.get("site_type", "")
-            record["代理推薦分數"] = classification.get("agency_fit_score", "")
-            record["AI判斷原因"] = classification.get("reason", "")
-            record["是否適合代理"] = "是" if classification.get("is_candidate") else "否"
+        record["AI分類"] = classification.get("site_type", "")
+        record["代理推薦分數"] = classification.get("agency_fit_score", "")
+        record["AI判斷原因"] = classification.get("reason", "")
+        record["是否適合代理"] = "是" if classification.get("is_candidate") else "否"
         records.append(record)
 
     return records
