@@ -6,7 +6,7 @@ from modules.ai_analyzer import analyze_brand_page
 from modules.excel_exporter import export_vendor_records
 from modules.exhibition_search import search_exhibition_sources
 from modules.website_classifier import classify_website
-
+from modules.taiwan_distributor_checker import check_taiwan_distributor
 
 def build_records(urls_with_source, start_index, max_count):
     records = []
@@ -39,6 +39,14 @@ def build_records(urls_with_source, start_index, max_count):
         record["代理推薦分數"] = classification.get("agency_fit_score", "")
         record["AI判斷原因"] = classification.get("reason", "")
         record["是否適合代理"] = "是" if classification.get("is_candidate") else "否"
+
+        taiwan_result = check_taiwan_distributor(
+            brand_name=record.get("公司名稱", ""),
+            official_url=url,
+        )
+
+        record.update(taiwan_result)
+
         records.append(record)
 
     return records
@@ -60,8 +68,8 @@ def dedupe_urls(urls_with_source):
 def run():
     config = DEFAULT_CONFIG
 
-    google_limit = 10
-    exhibition_limit = 10
+    google_limit = 2
+    exhibition_limit = 1
 
     keywords = generate_keywords(
         product="有機天然洗髮精",
