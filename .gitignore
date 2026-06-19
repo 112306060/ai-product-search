@@ -1,0 +1,25 @@
+# API 金鑰，絕對不能上傳
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 輸出資料
+data/output.xlsx
+
+# 系統檔案
+.DS_Store
+Thumbs.db
+
+*.zip
+
+# Excel 暫存檔
+~$*.xlsx
+data/~$*.xlsx
+data/output_test.xlsx
+
+~$*.xlsx
+data/~$*.xlsx
