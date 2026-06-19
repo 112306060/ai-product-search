@@ -5,7 +5,7 @@ from typing import Any
 import requests
 from dotenv import load_dotenv
 from openai import OpenAI
-
+from modules.cache_manager import load_cache, save_cache
 load_dotenv()
 
 SERPAPI_URL = "https://serpapi.com/search.json"
@@ -271,12 +271,31 @@ Return ONLY valid JSON:
 def check_taiwan_distributor(
     brand_name: str,
     official_url: str = "",
+    force_refresh: bool = False,
+    cache_expire_days: int = 7,
 ) -> dict[str, Any]:
     """
     Taiwan Distributor Checker 的主要入口。
 
-    搜尋台灣相關資料，並交由 AI 判斷。
+    先讀取未過期快取；沒有快取、快取過期，
+    或 force_refresh=True 時才重新搜尋。
     """
+    cache_key = brand_name.strip()
+
+    if not force_refresh:
+        cached_result = load_cache(
+            cache_type="taiwan_distributor",
+            cache_key=cache_key,
+            expire_days=cache_expire_days,
+        )
+
+        if cached_result is not None:
+            print(
+                f"[Taiwan Checker Cached] "
+                f"{brand_name}: {cached_result.get('台灣代理狀態')}"
+            )
+            return cached_result
+
     print(f"[Taiwan Distributor Checker] {brand_name}")
 
     search_results = search_taiwan_distributor(
@@ -288,6 +307,12 @@ def check_taiwan_distributor(
         brand_name=brand_name,
         official_url=official_url,
         search_results=search_results,
+    )
+
+    save_cache(
+        cache_type="taiwan_distributor",
+        cache_key=cache_key,
+        data=result,
     )
 
     print(

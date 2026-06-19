@@ -23,3 +23,6 @@ data/output_test.xlsx
 
 ~$*.xlsx
 data/~$*.xlsx
+
+# 執行時產生的快取
+data/cache/

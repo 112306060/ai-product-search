@@ -12,7 +12,7 @@ EXHIBITION_QUERIES = [
     '"Beautyworld" "natural cosmetics" "brand"',
 ]
 
-def search_exhibition_sources(exclude_domains, num_results=5):
+def search_exhibition_sources(    exclude_domains,    num_results=5,    test_mode=False,):
     exhibition_block_domains = [
         "cosmoprof.com",
         "cosmoprofnorthamerica.com",
@@ -30,10 +30,10 @@ def search_exhibition_sources(exclude_domains, num_results=5):
         "packaging-labelling.com",
         "glossy.co",
     ]
-
+    queries = EXHIBITION_QUERIES[:2] if test_mode else EXHIBITION_QUERIES
     urls = []
 
-    for query in EXHIBITION_QUERIES:
+    for query in queries:
         print(f"[EXHIBITION] {query}")
 
         results = search_web(
