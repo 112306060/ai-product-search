@@ -179,7 +179,12 @@ Important rules:
    - 僅有零售販售
    - 未找到代理證據
    - 無法判斷
+7. If the only evidence comes from Instagram, Facebook, TikTok,
+   Threads, or other social media, the status must not be
+   "已有官方代理". Use "疑似已有代理" at most.
 
+8. If the status is "未找到代理證據", source_url must be an empty string.
+   Do not use the official brand homepage as proof that no distributor exists.
 Return ONLY valid JSON:
 
 {{
@@ -235,13 +240,31 @@ Return ONLY valid JSON:
         confidence_score = max(0, min(confidence_score, 100))
     except (TypeError, ValueError):
         confidence_score = 0
+    source_url = result.get("source_url", "").strip()
+    source_url_lower = source_url.lower()
 
+    social_domains = [
+        "instagram.com",
+        "facebook.com",
+        "threads.net",
+        "tiktok.com",
+    ]
+
+    if (
+        status == "已有官方代理"
+        and any(domain in source_url_lower for domain in social_domains)
+    ):
+        status = "疑似已有代理"
+        confidence_score = min(confidence_score, 80)
+
+    if status == "未找到代理證據":
+        source_url = ""
     return {
-        "台灣代理狀態": status,
-        "台灣代理商名稱": result.get("distributor_name", ""),
-        "台灣代理證據": result.get("evidence", ""),
-        "台灣代理來源": result.get("source_url", ""),
-        "台灣檢查信心分數": confidence_score,
+    "台灣代理狀態": status,
+    "台灣代理商名稱": result.get("distributor_name", ""),
+    "台灣代理證據": result.get("evidence", ""),
+    "台灣代理來源": source_url,
+    "台灣檢查信心分數": confidence_score,
     }
 
 
