@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from urllib.parse import urlparse
-
+from modules.brand_name_validator import validate_brand_name
 COUNTRY_HINTS = {
     ".it": "Italy",
     ".fr": "France",
@@ -42,8 +42,18 @@ COUNTRY_KEYWORDS = {
     "england": "United Kingdom",
 }
 
-def analyze_brand_page(url: str, page_text: str, index: int, source: str = "Google Search") -> dict:
-    company_name = guess_company_name(url, page_text)
+def analyze_brand_page(
+    url: str,
+    page_text: str,
+    index: int,
+    source: str = "Google Search",
+) -> dict:
+    guessed_name = guess_company_name(url, page_text)
+
+    company_name = validate_brand_name(
+        proposed_name=guessed_name,
+        url=url,
+    )
     country = guess_country(url, page_text)
     product_content = guess_product_content(page_text)
     comment = guess_comment(page_text)
