@@ -31,6 +31,7 @@ EMPTY_TAIWAN_RESULT = {
 }
 
 
+
 def build_records(
     urls_with_source,
     start_index,
@@ -44,23 +45,51 @@ def build_records(
     force_refresh_brands=False,
 ):
     """
-    爬取網站、執行 AI 分類與分析，
-    並整理成可匯出的品牌紀錄。
+    處理 Google 搜尋與展覽來源的官網資料。
 
-    目前此函式尚未接入 SearchProfile。
-    後續修改 website_classifier 與 ai_analyzer
-    時，再將 search_profile 傳入。
+    支援兩種資料格式：
+
+    Google 搜尋：
+        (
+            url,
+            source,
+        )
+
+    展覽來源：
+        (
+            url,
+            source,
+            source_metadata,
+        )
     """
 
     records = []
+
     existing_domains = (
         existing_domains or set()
     )
+
     skipped_existing_count = 0
 
-    for url, source in urls_with_source:
+    for source_item in urls_with_source:
         if len(records) >= max_count:
             break
+
+        # Google 搜尋通常只有 URL 與來源名稱。
+        # 展覽來源會多帶一份 metadata。
+        if len(source_item) == 3:
+            (
+                url,
+                source,
+                source_metadata,
+            ) = source_item
+        else:
+            (
+                url,
+                source,
+            ) = source_item
+
+            source_metadata = {}
 
         domain = get_main_domain(url)
 
@@ -91,7 +120,10 @@ def build_records(
             search_profile=search_profile,
         )
 
-        print(url, classification)
+        print(
+            url,
+            classification,
+        )
 
         if not classification.get(
             "is_candidate"
@@ -106,6 +138,51 @@ def build_records(
             source=source,
         )
 
+        # 保留展覽名錄中的原始資料。
+        if source_metadata:
+            record.update(
+                {
+                    key: value
+                    for key, value
+                    in source_metadata.items()
+                    if key != "展覽國家"
+                }
+            )
+
+            # 展覽名錄的公司名稱通常比網域推測更準確。
+            exhibition_company_name = (
+                source_metadata.get(
+                    "展覽公司名稱",
+                    "",
+                )
+            )
+
+            if exhibition_company_name:
+                record["公司名稱"] = (
+                    exhibition_company_name
+                )
+
+            # 如果 AI 沒有判斷出國家，
+            # 就使用官方展覽名錄提供的國家。
+            exhibition_country = (
+                source_metadata.get(
+                    "展覽國家",
+                    "",
+                )
+            )
+
+            if (
+                exhibition_country
+                and not classification.get(
+                    "country"
+                )
+            ):
+                record["國家"] = (
+                    exhibition_country
+                )
+
+        # 如果 AI 有判斷出國家，
+        # 優先使用 AI 結果。
         if classification.get("country"):
             record["國家"] = (
                 classification.get("country")
@@ -176,6 +253,7 @@ def build_records(
     return records
 
 
+
 def collect_google_urls(
     config,
     search_profile,
@@ -235,13 +313,14 @@ def collect_google_urls(
 
     return dedupe_urls(google_urls)
 
+
 def collect_cosmoprof_asia_urls(
     search_profile,
     max_count,
 ):
     """
     從 Cosmoprof Asia 官方名錄取得參展商，
-    再依照本次 SearchProfile 篩選候選公司。
+    依照 SearchProfile 篩選，並保留展覽資料。
     """
 
     if max_count <= 0:
@@ -264,7 +343,7 @@ def collect_cosmoprof_asia_urls(
         f"{len(matched_exhibitors)} 筆"
     )
 
-    urls = []
+    source_items = []
 
     for exhibitor in matched_exhibitors:
         official_url = exhibitor.get(
@@ -280,22 +359,60 @@ def collect_cosmoprof_asia_urls(
             "Cosmoprof Asia",
         )
 
-        urls.append(
+        metadata = {
+            "展覽名稱": exhibitor.get(
+                "exhibition",
+                "",
+            ),
+            "展覽年份": exhibitor.get(
+                "exhibition_year",
+                "",
+            ),
+            "展覽攤位": exhibitor.get(
+                "booth",
+                "",
+            ),
+            "展覽公司名稱": exhibitor.get(
+                "company_name",
+                "",
+            ),
+            "展覽商品分類": exhibitor.get(
+                "product_category",
+                "",
+            ),
+            "展覽參展類型": exhibitor.get(
+                "exhibitor_type",
+                "",
+            ),
+            "展覽來源頁面": exhibitor.get(
+                "source_url",
+                "",
+            ),
+            "展覽國家": exhibitor.get(
+                "country",
+                "",
+            ),
+        }
+
+        source_items.append(
             (
                 official_url,
                 source,
+                metadata,
             )
         )
 
-        if len(urls) >= max_count:
+        if len(source_items) >= max_count:
             break
 
     print(
         "[COSMOPROF ASIA URLS] "
-        f"送入後續分析 {len(urls)} 筆"
+        f"送入後續分析 {len(source_items)} 筆"
     )
 
-    return dedupe_urls(urls)
+    return source_items
+
+
 def collect_exhibition_urls(
     config,
     exhibition_limit,

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from modules.url_utils import get_main_domain
 
+
 COLUMNS = [
     "記錄日期",
     "編號",
@@ -11,6 +12,13 @@ COLUMNS = [
     "網站",
     "國家",
     "資料來源",
+    "展覽名稱",
+    "展覽年份",
+    "展覽攤位",
+    "展覽公司名稱",
+    "展覽商品分類",
+    "展覽參展類型",
+    "展覽來源頁面",
     "商品類別",
     "商品內容",
     "AI分類",
@@ -27,6 +35,8 @@ COLUMNS = [
     "連絡人資料",
     "來源連結",
 ]
+
+
 
 # 這些欄位可能由公司人員人工填寫。
 # 程式更新品牌資料時，不應把人工內容覆蓋掉。
