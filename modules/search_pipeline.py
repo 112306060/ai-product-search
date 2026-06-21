@@ -17,7 +17,10 @@ from modules.url_utils import (
     get_main_domain,
 )
 from modules.website_classifier import classify_website
-
+from modules.candidate_filter import filter_candidates
+from modules.exhibitions.cosmoprof_asia import (
+    get_all_exhibitors,
+)
 
 EMPTY_TAIWAN_RESULT = {
     "台灣代理狀態": "未執行",
@@ -232,7 +235,67 @@ def collect_google_urls(
 
     return dedupe_urls(google_urls)
 
+def collect_cosmoprof_asia_urls(
+    search_profile,
+    max_count,
+):
+    """
+    從 Cosmoprof Asia 官方名錄取得參展商，
+    再依照本次 SearchProfile 篩選候選公司。
+    """
 
+    if max_count <= 0:
+        print(
+            "[COSMOPROF ASIA DISABLED] "
+            "本次未啟用官方展覽來源"
+        )
+        return []
+
+    exhibitors = get_all_exhibitors()
+
+    matched_exhibitors = filter_candidates(
+        exhibitors,
+        search_profile,
+    )
+
+    print(
+        "[COSMOPROF ASIA FILTER] "
+        f"{len(exhibitors)} 筆中符合 "
+        f"{len(matched_exhibitors)} 筆"
+    )
+
+    urls = []
+
+    for exhibitor in matched_exhibitors:
+        official_url = exhibitor.get(
+            "official_url",
+            "",
+        )
+
+        if not official_url:
+            continue
+
+        source = exhibitor.get(
+            "source",
+            "Cosmoprof Asia",
+        )
+
+        urls.append(
+            (
+                official_url,
+                source,
+            )
+        )
+
+        if len(urls) >= max_count:
+            break
+
+    print(
+        "[COSMOPROF ASIA URLS] "
+        f"送入後續分析 {len(urls)} 筆"
+    )
+
+    return dedupe_urls(urls)
 def collect_exhibition_urls(
     config,
     exhibition_limit,
@@ -284,9 +347,9 @@ def get_search_limits(config):
     """
 
     if config.test_mode:
-        return 2, 0
+        return 2, 2
 
-    return config.target_count, 0
+    return config.target_count, config.target_count
 
 
 def run_search_pipeline(
@@ -315,11 +378,9 @@ def run_search_pipeline(
     )
 
     exhibition_urls = (
-        collect_exhibition_urls(
-            config=config,
-            exhibition_limit=(
-                exhibition_limit
-            ),
+        collect_cosmoprof_asia_urls(
+            search_profile=search_profile,
+            max_count=exhibition_limit,
         )
     )
 
@@ -428,7 +489,7 @@ def run_search_pipeline(
     )
 
     print(
-        "Exhibition records: "
+        "Cosmoprof Asia records: "
         f"{len(exhibition_records)}"
     )
 
