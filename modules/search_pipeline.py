@@ -99,6 +99,7 @@ def build_records(
             url=url,
             page_text=page_text,
             index=start_index + len(records),
+            search_profile=search_profile,
             source=source,
         )
 
