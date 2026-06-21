@@ -117,14 +117,13 @@ def run():
         google_limit = 2
         exhibition_limit = 1
     else:
-        google_limit = 5
-        exhibition_limit = 5
+        google_limit = config.target_count
+        exhibition_limit = 0
 
     keywords = generate_keywords(
-        product="有機天然洗髮精",
-        region="歐盟",
+        product=config.product,
+        region=config.region,
         languages=config.languages,
-        
     )
     if config.test_mode:
             keywords = keywords[:2]

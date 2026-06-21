@@ -3,9 +3,9 @@ from dataclasses import dataclass, field
 
 @dataclass
 class SearchConfig:
-    product: str = "shampoo"
-    region: str = "EU"
-    target_count: int = 20
+    product: str = "有機天然洗髮精"
+    region: str = "歐盟"
+    target_count: int = 10
 
     # True：少量測試，節省 API 額度
     # False：正式搜尋
@@ -14,7 +14,7 @@ class SearchConfig:
     
     test_mode: bool = False
     check_taiwan_distributor: bool = True
-    force_refresh_taiwan: bool = True
+    force_refresh_taiwan: bool = False
     taiwan_cache_days: int = 7
     # 是否跳過近期已分析的品牌
     skip_existing_brands: bool = True
