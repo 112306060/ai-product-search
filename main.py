@@ -6,7 +6,11 @@ from modules.ai_analyzer import analyze_brand_page
 from modules.excel_exporter import (
     export_vendor_records,
     load_recent_existing_domains,
-    normalize_domain,
+)
+
+from modules.url_utils import (
+    dedupe_urls,
+    get_main_domain,
 )
 from modules.exhibition_search import search_exhibition_sources
 from modules.website_classifier import classify_website
@@ -29,7 +33,7 @@ def build_records(
     for url, source in urls_with_source:
         if len(records) >= max_count:
             break
-        domain = normalize_domain(url)
+        domain = get_main_domain(url)
 
         should_skip = (
             skip_existing_brands
@@ -97,17 +101,7 @@ def build_records(
     return records
 
 
-def dedupe_urls(urls_with_source):
-    seen = set()
-    unique = []
 
-    for url, source in urls_with_source:
-        if url in seen:
-            continue
-        seen.add(url)
-        unique.append((url, source))
-
-    return unique
 
 
 def run():

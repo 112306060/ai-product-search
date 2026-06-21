@@ -1,8 +1,8 @@
 from pathlib import Path
-from urllib.parse import urlparse
+
 from datetime import datetime, timedelta
 import pandas as pd
-
+from modules.url_utils import get_main_domain
 
 COLUMNS = [
     "記錄日期",
@@ -36,36 +36,6 @@ MANUAL_COLUMNS = [
 ]
 
 
-def normalize_domain(url: str) -> str:
-    """
-    將網址轉成可用於品牌去重的標準網域。
-
-    例如：
-    https://www.vieloe.com/products/shampoo
-    -> vieloe.com
-    """
-    if not isinstance(url, str):
-        return ""
-
-    cleaned_url = url.strip().lower()
-
-    if not cleaned_url:
-        return ""
-
-    if not cleaned_url.startswith(("http://", "https://")):
-        cleaned_url = f"https://{cleaned_url}"
-
-    try:
-        parsed = urlparse(cleaned_url)
-        domain = parsed.netloc.lower()
-
-        if domain.startswith("www."):
-            domain = domain[4:]
-
-        return domain
-
-    except ValueError:
-        return ""
 
 
 def normalize_brand_name(name: str) -> str:
@@ -90,7 +60,7 @@ def make_brand_key(record: dict) -> str:
     website = record.get("網站", "")
     source_url = record.get("來源連結", "")
 
-    domain = normalize_domain(website) or normalize_domain(source_url)
+    domain = get_main_domain(website) or get_main_domain(source_url)
 
     if domain:
         return f"domain:{domain}"
@@ -202,8 +172,8 @@ def load_recent_existing_domains(
         source_url = record.get("來源連結", "")
 
         domain = (
-            normalize_domain(website)
-            or normalize_domain(source_url)
+            get_main_domain(website)
+            or get_main_domain(source_url)
         )
 
         if not domain:
