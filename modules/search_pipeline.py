@@ -32,6 +32,7 @@ def build_records(
     urls_with_source,
     start_index,
     max_count,
+    search_profile,
     check_taiwan=True,
     force_refresh_taiwan=False,
     taiwan_cache_days=7,
@@ -82,8 +83,9 @@ def build_records(
             continue
 
         classification = classify_website(
-            url,
-            page_text,
+            url=url,
+            page_text=page_text,
+            search_profile=search_profile,
         )
 
         print(url, classification)
@@ -339,6 +341,7 @@ def run_search_pipeline(
         urls_with_source=google_urls,
         start_index=1,
         max_count=google_limit,
+        search_profile=search_profile,
         check_taiwan=(
             config.check_taiwan_distributor
         ),
@@ -363,6 +366,7 @@ def run_search_pipeline(
             len(google_records) + 1
         ),
         max_count=exhibition_limit,
+        search_profile=search_profile,
         check_taiwan=(
             config.check_taiwan_distributor
         ),
