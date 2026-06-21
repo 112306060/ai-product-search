@@ -21,7 +21,7 @@ from modules.candidate_filter import filter_candidates
 from modules.exhibitions.cosmoprof_asia import (
     get_all_exhibitors,
 )
-
+from datetime import datetime
 EMPTY_TAIWAN_RESULT = {
     "台灣代理狀態": "未執行",
     "台灣代理商名稱": "",
@@ -29,6 +29,118 @@ EMPTY_TAIWAN_RESULT = {
     "台灣代理來源": "",
     "台灣檢查信心分數": "",
 }
+
+
+def build_exhibition_fallback_record(
+    url,
+    source,
+    source_metadata,
+    index,
+    search_profile,
+):
+    """
+    當展覽候選公司的官網無法讀取時，
+    仍使用官方展覽名錄建立待人工確認紀錄。
+    """
+
+    company_name = source_metadata.get(
+        "展覽公司名稱",
+        "",
+    )
+
+    country = source_metadata.get(
+        "展覽國家",
+        "",
+    )
+
+    exhibition_category = source_metadata.get(
+        "展覽商品分類",
+        "",
+    )
+
+    product_categories = []
+
+    for keyword in search_profile.product_keywords:
+        cleaned = str(keyword).strip()
+
+        if not cleaned:
+            continue
+
+        display = " ".join(
+            word.capitalize()
+            for word in cleaned.split()
+        )
+
+        if display not in product_categories:
+            product_categories.append(display)
+
+    product_category = " / ".join(
+        product_categories
+    )
+
+    if not product_category:
+        product_category = (
+            search_profile.query.strip()
+            or "待人工確認"
+        )
+
+    return {
+        "記錄日期": datetime.now().strftime(
+            "%Y%m%d"
+        ),
+        "編號": index,
+        "公司名稱": company_name,
+        "網站": url,
+        "國家": country,
+        "資料來源": source,
+        "展覽名稱": source_metadata.get(
+            "展覽名稱",
+            "",
+        ),
+        "展覽年份": source_metadata.get(
+            "展覽年份",
+            "",
+        ),
+        "展覽攤位": source_metadata.get(
+            "展覽攤位",
+            "",
+        ),
+        "展覽公司名稱": company_name,
+        "展覽商品分類": exhibition_category,
+        "展覽參展類型": source_metadata.get(
+            "展覽參展類型",
+            "",
+        ),
+        "展覽來源頁面": source_metadata.get(
+            "展覽來源頁面",
+            "",
+        ),
+        "商品類別": product_category,
+        "商品內容": (
+            exhibition_category
+            or "官方展覽名錄候選，待人工確認"
+        ),
+        "AI分類": "待人工確認",
+        "是否適合代理": "待確認",
+        "代理推薦分數": "",
+        "AI判斷原因": (
+            "官方展覽名錄符合初步搜尋條件，"
+            "但官網無法讀取，因此尚未執行完整 AI 判斷。"
+        ),
+        "台灣代理狀態": "未執行",
+        "台灣代理商名稱": "",
+        "台灣代理證據": "",
+        "台灣代理來源": "",
+        "台灣檢查信心分數": "",
+        "評論": (
+            "已保留官方展覽資料；"
+            "官網爬取失敗，待人工確認"
+        ),
+        "後續連絡情況": "",
+        "連絡人資料": "",
+        "來源連結": url,
+    }
+
 
 
 
@@ -45,22 +157,15 @@ def build_records(
     force_refresh_brands=False,
 ):
     """
-    處理 Google 搜尋與展覽來源的官網資料。
+    處理 Google 搜尋與展覽來源資料。
 
-    支援兩種資料格式：
+    支援兩種輸入：
 
-    Google 搜尋：
-        (
-            url,
-            source,
-        )
+    Google：
+        (url, source)
 
-    展覽來源：
-        (
-            url,
-            source,
-            source_metadata,
-        )
+    展覽：
+        (url, source, source_metadata)
     """
 
     records = []
@@ -75,8 +180,6 @@ def build_records(
         if len(records) >= max_count:
             break
 
-        # Google 搜尋通常只有 URL 與來源名稱。
-        # 展覽來源會多帶一份 metadata。
         if len(source_item) == 3:
             (
                 url,
@@ -111,7 +214,36 @@ def build_records(
 
         page_text = fetch_website_text(url)
 
+        # 官網無法讀取，但有官方展覽資料時，
+        # 仍建立一筆待人工確認紀錄。
         if not page_text:
+            if source_metadata:
+                fallback_record = (
+                    build_exhibition_fallback_record(
+                        url=url,
+                        source=source,
+                        source_metadata=(
+                            source_metadata
+                        ),
+                        index=(
+                            start_index
+                            + len(records)
+                        ),
+                        search_profile=(
+                            search_profile
+                        ),
+                    )
+                )
+
+                print(
+                    "[EXHIBITION FALLBACK] "
+                    f"{fallback_record['公司名稱']}"
+                )
+
+                records.append(
+                    fallback_record
+                )
+
             continue
 
         classification = classify_website(
@@ -138,7 +270,16 @@ def build_records(
             source=source,
         )
 
-        # 保留展覽名錄中的原始資料。
+        # 一般來源先使用 AI 判斷國家。
+        ai_country = classification.get(
+            "country",
+            "",
+        )
+
+        if ai_country:
+            record["國家"] = ai_country
+
+        # 官方展覽資料優先於網域推測與 AI 判斷。
         if source_metadata:
             record.update(
                 {
@@ -149,44 +290,29 @@ def build_records(
                 }
             )
 
-            # 展覽名錄的公司名稱通常比網域推測更準確。
-            exhibition_company_name = (
+            official_company_name = (
                 source_metadata.get(
                     "展覽公司名稱",
                     "",
                 )
             )
 
-            if exhibition_company_name:
+            if official_company_name:
                 record["公司名稱"] = (
-                    exhibition_company_name
+                    official_company_name
                 )
 
-            # 如果 AI 沒有判斷出國家，
-            # 就使用官方展覽名錄提供的國家。
-            exhibition_country = (
+            official_country = (
                 source_metadata.get(
                     "展覽國家",
                     "",
                 )
             )
 
-            if (
-                exhibition_country
-                and not classification.get(
-                    "country"
-                )
-            ):
+            if official_country:
                 record["國家"] = (
-                    exhibition_country
+                    official_country
                 )
-
-        # 如果 AI 有判斷出國家，
-        # 優先使用 AI 結果。
-        if classification.get("country"):
-            record["國家"] = (
-                classification.get("country")
-            )
 
         record["AI分類"] = (
             classification.get(
@@ -251,6 +377,7 @@ def build_records(
         )
 
     return records
+
 
 
 
