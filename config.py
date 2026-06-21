@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-
+from modules.search_profile import SearchProfile
 
 @dataclass
 class SearchConfig:
@@ -12,7 +12,7 @@ class SearchConfig:
     
 
     
-    test_mode: bool = False
+    test_mode: bool = True
     check_taiwan_distributor: bool = True
     force_refresh_taiwan: bool = False
     taiwan_cache_days: int = 7
@@ -53,3 +53,32 @@ class SearchConfig:
 
 
 DEFAULT_CONFIG = SearchConfig()
+DEFAULT_SEARCH_PROFILE = SearchProfile(
+    query="歐洲有機天然洗髮精",
+    product_keywords=[
+        "shampoo",
+        "conditioner",
+        "hair care",
+        "scalp care",
+    ],
+    positioning_keywords=[
+        "organic",
+        "natural",
+        "vegan",
+    ],
+    excluded_keywords=[
+        "hair removal",
+        "beauty equipment",
+        "packaging",
+        "nail",
+        "eyelash",
+    ],
+    included_regions=[
+        "Europe",
+    ],
+    excluded_countries=[],
+    require_official_url=True,
+    require_product_match=True,
+    require_positioning_match=True,
+    allow_unknown_country=False,
+)
