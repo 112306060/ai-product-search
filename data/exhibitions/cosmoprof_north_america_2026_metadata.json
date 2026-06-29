@@ -1,0 +1,1218 @@
+{
+  "synced_at": "2026-06-29T07:56:51+00:00",
+  "source": "Cosmoprof North America official API",
+  "directory_url": "https://lasvegas-directory.cosmoprofnorthamerica.com/newfront/marketplace/exhibitors",
+  "countries": [
+    {
+      "id": 36,
+      "name": "Australia",
+      "iso": "AU"
+    },
+    {
+      "id": 56,
+      "name": "Belgium",
+      "iso": "BE"
+    },
+    {
+      "id": 76,
+      "name": "Brazil",
+      "iso": "BR"
+    },
+    {
+      "id": 124,
+      "name": "Canada",
+      "iso": "CA"
+    },
+    {
+      "id": 156,
+      "name": "China",
+      "iso": "CN"
+    },
+    {
+      "id": 203,
+      "name": "Czech Republic",
+      "iso": "CZ"
+    },
+    {
+      "id": 214,
+      "name": "Dominican Republic",
+      "iso": "DO"
+    },
+    {
+      "id": 250,
+      "name": "France",
+      "iso": "FR"
+    },
+    {
+      "id": 276,
+      "name": "Germany",
+      "iso": "DE"
+    },
+    {
+      "id": 300,
+      "name": "Greece",
+      "iso": "GR"
+    },
+    {
+      "id": 344,
+      "name": "Hong Kong",
+      "iso": "HK"
+    },
+    {
+      "id": 356,
+      "name": "India",
+      "iso": "IN"
+    },
+    {
+      "id": 360,
+      "name": "Indonesia",
+      "iso": "ID"
+    },
+    {
+      "id": 372,
+      "name": "Ireland",
+      "iso": "IE"
+    },
+    {
+      "id": 376,
+      "name": "Israel",
+      "iso": "IL"
+    },
+    {
+      "id": 380,
+      "name": "Italy",
+      "iso": "IT"
+    },
+    {
+      "id": 392,
+      "name": "Japan",
+      "iso": "JP"
+    },
+    {
+      "id": 414,
+      "name": "Kuwait",
+      "iso": "KW"
+    },
+    {
+      "id": 428,
+      "name": "Latvia",
+      "iso": "LV"
+    },
+    {
+      "id": 458,
+      "name": "Malaysia",
+      "iso": "MY"
+    },
+    {
+      "id": 484,
+      "name": "Mexico",
+      "iso": "MX"
+    },
+    {
+      "id": 528,
+      "name": "Netherlands",
+      "iso": "NL"
+    },
+    {
+      "id": 578,
+      "name": "Norway",
+      "iso": "NO"
+    },
+    {
+      "id": 586,
+      "name": "Pakistan",
+      "iso": "PK"
+    },
+    {
+      "id": 591,
+      "name": "Panama",
+      "iso": "PA"
+    },
+    {
+      "id": 616,
+      "name": "Poland",
+      "iso": "PL"
+    },
+    {
+      "id": 620,
+      "name": "Portugal",
+      "iso": "PT"
+    },
+    {
+      "id": 630,
+      "name": "Puerto Rico",
+      "iso": "PR"
+    },
+    {
+      "id": 682,
+      "name": "Saudi Arabia",
+      "iso": "SA"
+    },
+    {
+      "id": 702,
+      "name": "Singapore",
+      "iso": "SG"
+    },
+    {
+      "id": 410,
+      "name": "South Korea",
+      "iso": "KR"
+    },
+    {
+      "id": 724,
+      "name": "Spain",
+      "iso": "ES"
+    },
+    {
+      "id": 756,
+      "name": "Switzerland",
+      "iso": "CH"
+    },
+    {
+      "id": 158,
+      "name": "Taiwan",
+      "iso": "TW"
+    },
+    {
+      "id": 792,
+      "name": "Turkey",
+      "iso": "TR"
+    },
+    {
+      "id": 826,
+      "name": "United Kingdom",
+      "iso": "GB"
+    },
+    {
+      "id": 840,
+      "name": "United States of America",
+      "iso": "US"
+    },
+    {
+      "id": 704,
+      "name": "Vietnam",
+      "iso": "VN"
+    }
+  ],
+  "business_areas": [
+    {
+      "id": 420,
+      "name": "AAPI-Owned",
+      "parent_id": null
+    },
+    {
+      "id": 606,
+      "name": "Acetates",
+      "parent_id": null
+    },
+    {
+      "id": 607,
+      "name": "Acids",
+      "parent_id": null
+    },
+    {
+      "id": 715,
+      "name": "Acne & Blemishes",
+      "parent_id": null
+    },
+    {
+      "id": 608,
+      "name": "Actives",
+      "parent_id": null
+    },
+    {
+      "id": 493,
+      "name": "Aerosol products",
+      "parent_id": null
+    },
+    {
+      "id": 665,
+      "name": "Ageless and Anti-Aging",
+      "parent_id": null
+    },
+    {
+      "id": 609,
+      "name": "Alcohols",
+      "parent_id": null
+    },
+    {
+      "id": 610,
+      "name": "Anionics",
+      "parent_id": null
+    },
+    {
+      "id": 611,
+      "name": "Anti-Ageing and Anti-Wrinkle",
+      "parent_id": null
+    },
+    {
+      "id": 711,
+      "name": "Anti-Aging, Lines & Wrinkles",
+      "parent_id": null
+    },
+    {
+      "id": 612,
+      "name": "Anti-Pollution",
+      "parent_id": null
+    },
+    {
+      "id": 601,
+      "name": "Antioxidants",
+      "parent_id": null
+    },
+    {
+      "id": 597,
+      "name": "Antiseptics and Preservatives",
+      "parent_id": null
+    },
+    {
+      "id": 487,
+      "name": "Applicators and droppers",
+      "parent_id": null
+    },
+    {
+      "id": 670,
+      "name": "Association",
+      "parent_id": null
+    },
+    {
+      "id": 478,
+      "name": "Atomizers, aerosol valves, dispensers, pumps",
+      "parent_id": null
+    },
+    {
+      "id": 667,
+      "name": "Baby Care",
+      "parent_id": null
+    },
+    {
+      "id": 415,
+      "name": "Black-Owned",
+      "parent_id": null
+    },
+    {
+      "id": 399,
+      "name": "BRAND VALUES",
+      "parent_id": null
+    },
+    {
+      "id": 714,
+      "name": "Brightening",
+      "parent_id": null
+    },
+    {
+      "id": 446,
+      "name": "Brushes",
+      "parent_id": null
+    },
+    {
+      "id": 488,
+      "name": "Brushes",
+      "parent_id": null
+    },
+    {
+      "id": 613,
+      "name": "Butters",
+      "parent_id": null
+    },
+    {
+      "id": 477,
+      "name": "Capsules, Caps, closures",
+      "parent_id": null
+    },
+    {
+      "id": 586,
+      "name": "Cardboard cases/boxes",
+      "parent_id": null
+    },
+    {
+      "id": 481,
+      "name": "Cases",
+      "parent_id": null
+    },
+    {
+      "id": 721,
+      "name": "CBeauty",
+      "parent_id": null
+    },
+    {
+      "id": 614,
+      "name": "Cellulose and Derivates",
+      "parent_id": null
+    },
+    {
+      "id": 443,
+      "name": "Cheeks",
+      "parent_id": null
+    },
+    {
+      "id": 615,
+      "name": "Clays",
+      "parent_id": null
+    },
+    {
+      "id": 431,
+      "name": "Cleansers",
+      "parent_id": null
+    },
+    {
+      "id": 616,
+      "name": "Cleansing Agents",
+      "parent_id": null
+    },
+    {
+      "id": 600,
+      "name": "Colors and Pigments",
+      "parent_id": null
+    },
+    {
+      "id": 411,
+      "name": "Contract and Private Label Manufacturer",
+      "parent_id": null
+    },
+    {
+      "id": 494,
+      "name": "Cosmetic Products Face, Body Treatment and Sun Care",
+      "parent_id": null
+    },
+    {
+      "id": 456,
+      "name": "Cremes + Gels + Oils",
+      "parent_id": null
+    },
+    {
+      "id": 418,
+      "name": "Cruelty-Free",
+      "parent_id": null
+    },
+    {
+      "id": 712,
+      "name": "Dark Spots",
+      "parent_id": null
+    },
+    {
+      "id": 713,
+      "name": "Dullness & Uneven Texture",
+      "parent_id": null
+    },
+    {
+      "id": 594,
+      "name": "Emollients and Umectants",
+      "parent_id": null
+    },
+    {
+      "id": 595,
+      "name": "Emulsifiers and Solubilizers",
+      "parent_id": null
+    },
+    {
+      "id": 412,
+      "name": "Equipment, Machinery and Automation Systems for the Cosmetic Industry",
+      "parent_id": null
+    },
+    {
+      "id": 604,
+      "name": "Essential Oils and Plant Extracts (or Botanicals)",
+      "parent_id": null
+    },
+    {
+      "id": 617,
+      "name": "Exfoliants and Peeling Agents",
+      "parent_id": null
+    },
+    {
+      "id": 434,
+      "name": "Eye Care",
+      "parent_id": null
+    },
+    {
+      "id": 445,
+      "name": "Eyes",
+      "parent_id": null
+    },
+    {
+      "id": 588,
+      "name": "Fabric",
+      "parent_id": null
+    },
+    {
+      "id": 593,
+      "name": "Fats and Glycerin Esters",
+      "parent_id": null
+    },
+    {
+      "id": 417,
+      "name": "Female-Founded",
+      "parent_id": null
+    },
+    {
+      "id": 397,
+      "name": "FINISHED PRODUCTS & SERVICES CATEGORIES",
+      "parent_id": null
+    },
+    {
+      "id": 485,
+      "name": "Finishing and Decorations",
+      "parent_id": null
+    },
+    {
+      "id": 605,
+      "name": "Flavours",
+      "parent_id": null
+    },
+    {
+      "id": 618,
+      "name": "Foaming agents",
+      "parent_id": null
+    },
+    {
+      "id": 440,
+      "name": "Foundations",
+      "parent_id": null
+    },
+    {
+      "id": 403,
+      "name": "Fragrance",
+      "parent_id": null
+    },
+    {
+      "id": 661,
+      "name": "Fragrances",
+      "parent_id": null
+    },
+    {
+      "id": 591,
+      "name": "Fragrances for Cosmetics and Toiletries",
+      "parent_id": null
+    },
+    {
+      "id": 475,
+      "name": "Glass containers (bottles, jars, phials/ampoules)",
+      "parent_id": null
+    },
+    {
+      "id": 619,
+      "name": "Gums",
+      "parent_id": null
+    },
+    {
+      "id": 404,
+      "name": "Hair Care",
+      "parent_id": null
+    },
+    {
+      "id": 498,
+      "name": "Haircare",
+      "parent_id": null
+    },
+    {
+      "id": 432,
+      "name": "Hand & Body",
+      "parent_id": null
+    },
+    {
+      "id": 450,
+      "name": "Home scent",
+      "parent_id": null
+    },
+    {
+      "id": 416,
+      "name": "Indigineous-Owned",
+      "parent_id": null
+    },
+    {
+      "id": 671,
+      "name": "JBeauty",
+      "parent_id": null
+    },
+    {
+      "id": 672,
+      "name": "KBeauty",
+      "parent_id": null
+    },
+    {
+      "id": 572,
+      "name": "Lab Equipment & Services",
+      "parent_id": null
+    },
+    {
+      "id": 508,
+      "name": "Labeling / Coding / Marking Machines",
+      "parent_id": null
+    },
+    {
+      "id": 482,
+      "name": "Labels (Adhesive & Non-Adhesive)",
+      "parent_id": null
+    },
+    {
+      "id": 422,
+      "name": "Latin-Owned",
+      "parent_id": null
+    },
+    {
+      "id": 421,
+      "name": "LGBTQ+-Owned",
+      "parent_id": null
+    },
+    {
+      "id": 442,
+      "name": "Lips",
+      "parent_id": null
+    },
+    {
+      "id": 620,
+      "name": "Lubrificants",
+      "parent_id": null
+    },
+    {
+      "id": 505,
+      "name": "Make-up Pencils",
+      "parent_id": null
+    },
+    {
+      "id": 496,
+      "name": "Make-up Products",
+      "parent_id": null
+    },
+    {
+      "id": 402,
+      "name": "Makeup",
+      "parent_id": null
+    },
+    {
+      "id": 435,
+      "name": "Makeup Remover",
+      "parent_id": null
+    },
+    {
+      "id": 441,
+      "name": "Mascara & Lash",
+      "parent_id": null
+    },
+    {
+      "id": 504,
+      "name": "Mask Tissues",
+      "parent_id": null
+    },
+    {
+      "id": 433,
+      "name": "Masks",
+      "parent_id": null
+    },
+    {
+      "id": 454,
+      "name": "Masks + Treatments",
+      "parent_id": null
+    },
+    {
+      "id": 719,
+      "name": "Mass",
+      "parent_id": null
+    },
+    {
+      "id": 718,
+      "name": "Masstige",
+      "parent_id": null
+    },
+    {
+      "id": 451,
+      "name": "Men's Fragrance",
+      "parent_id": null
+    },
+    {
+      "id": 460,
+      "name": "Men's Hair Care",
+      "parent_id": null
+    },
+    {
+      "id": 447,
+      "name": "Men's Makeup",
+      "parent_id": null
+    },
+    {
+      "id": 437,
+      "name": "Men's Skin Care",
+      "parent_id": null
+    },
+    {
+      "id": 583,
+      "name": "Metal",
+      "parent_id": null
+    },
+    {
+      "id": 585,
+      "name": "Metal",
+      "parent_id": null
+    },
+    {
+      "id": 479,
+      "name": "Metal and Clay pans for baked powder makeup",
+      "parent_id": null
+    },
+    {
+      "id": 474,
+      "name": "Metal containers (aerosol cans, bottles, tubes)",
+      "parent_id": null
+    },
+    {
+      "id": 621,
+      "name": "Minerals",
+      "parent_id": null
+    },
+    {
+      "id": 622,
+      "name": "Moisturisers",
+      "parent_id": null
+    },
+    {
+      "id": 428,
+      "name": "Moisturizers",
+      "parent_id": null
+    },
+    {
+      "id": 500,
+      "name": "Nail Products",
+      "parent_id": null
+    },
+    {
+      "id": 463,
+      "name": "Nail treatments",
+      "parent_id": null
+    },
+    {
+      "id": 405,
+      "name": "Nails",
+      "parent_id": null
+    },
+    {
+      "id": 503,
+      "name": "Natural, Vegan, Bio and Halal (Make-up, Skincare, Nail polish)",
+      "parent_id": null
+    },
+    {
+      "id": 623,
+      "name": "Nourishing Agents",
+      "parent_id": null
+    },
+    {
+      "id": 624,
+      "name": "Nutraceutic Ingredients",
+      "parent_id": null
+    },
+    {
+      "id": 596,
+      "name": "Opacifier",
+      "parent_id": null
+    },
+    {
+      "id": 501,
+      "name": "Oral Care Products",
+      "parent_id": null
+    },
+    {
+      "id": 502,
+      "name": "OTC Products",
+      "parent_id": null
+    },
+    {
+      "id": 662,
+      "name": "OTHER",
+      "parent_id": null
+    },
+    {
+      "id": 476,
+      "name": "Other containers",
+      "parent_id": null
+    },
+    {
+      "id": 452,
+      "name": "Other Fragrance",
+      "parent_id": null
+    },
+    {
+      "id": 461,
+      "name": "Other Hair Care",
+      "parent_id": null
+    },
+    {
+      "id": 448,
+      "name": "Other Makeup",
+      "parent_id": null
+    },
+    {
+      "id": 438,
+      "name": "Other Skin Care",
+      "parent_id": null
+    },
+    {
+      "id": 480,
+      "name": "Other/Sustainalble offerings",
+      "parent_id": null
+    },
+    {
+      "id": 486,
+      "name": "Other/Sustainalble Offerings",
+      "parent_id": null
+    },
+    {
+      "id": 649,
+      "name": "Others",
+      "parent_id": null
+    },
+    {
+      "id": 491,
+      "name": "Packaging Development",
+      "parent_id": null
+    },
+    {
+      "id": 507,
+      "name": "Packaging Machinery and Equipments",
+      "parent_id": null
+    },
+    {
+      "id": 509,
+      "name": "Packing and End of Line Equipments",
+      "parent_id": null
+    },
+    {
+      "id": 483,
+      "name": "Packing and Shipping Material",
+      "parent_id": null
+    },
+    {
+      "id": 625,
+      "name": "Parabens",
+      "parent_id": null
+    },
+    {
+      "id": 626,
+      "name": "Pectins",
+      "parent_id": null
+    },
+    {
+      "id": 449,
+      "name": "Perfumes & Cologne",
+      "parent_id": null
+    },
+    {
+      "id": 720,
+      "name": "Planet Aware",
+      "parent_id": null
+    },
+    {
+      "id": 582,
+      "name": "Plastic",
+      "parent_id": null
+    },
+    {
+      "id": 587,
+      "name": "Plastic",
+      "parent_id": null
+    },
+    {
+      "id": 473,
+      "name": "Plastic containers (bottles, jars, phials/ampoules, tubes, trays)",
+      "parent_id": null
+    },
+    {
+      "id": 462,
+      "name": "Polish & Powders",
+      "parent_id": null
+    },
+    {
+      "id": 627,
+      "name": "Polymers",
+      "parent_id": null
+    },
+    {
+      "id": 669,
+      "name": "PR/Marketing Agency",
+      "parent_id": null
+    },
+    {
+      "id": 484,
+      "name": "Pressing Ribbons and Tissues",
+      "parent_id": null
+    },
+    {
+      "id": 717,
+      "name": "Prestige",
+      "parent_id": null
+    },
+    {
+      "id": 407,
+      "name": "Primary Packaging",
+      "parent_id": null
+    },
+    {
+      "id": 444,
+      "name": "Primers & Setters",
+      "parent_id": null
+    },
+    {
+      "id": 455,
+      "name": "Primers + Pre-stylers",
+      "parent_id": null
+    },
+    {
+      "id": 506,
+      "name": "Processing Machinery and Equipments",
+      "parent_id": null
+    },
+    {
+      "id": 716,
+      "name": "PRODUCT POSITIONING",
+      "parent_id": null
+    },
+    {
+      "id": 575,
+      "name": "Product Safety - Dossier",
+      "parent_id": null
+    },
+    {
+      "id": 409,
+      "name": "Products & Accessories",
+      "parent_id": null
+    },
+    {
+      "id": 628,
+      "name": "Protective Agents",
+      "parent_id": null
+    },
+    {
+      "id": 629,
+      "name": "Proteins",
+      "parent_id": null
+    },
+    {
+      "id": 489,
+      "name": "Puffs, wipes, sponges, sharpeners",
+      "parent_id": null
+    },
+    {
+      "id": 630,
+      "name": "Purifying Agents",
+      "parent_id": null
+    },
+    {
+      "id": 490,
+      "name": "Quality certification",
+      "parent_id": null
+    },
+    {
+      "id": 413,
+      "name": "Raw materials and ingredients",
+      "parent_id": null
+    },
+    {
+      "id": 631,
+      "name": "Repearing and Revitalizing Agents",
+      "parent_id": null
+    },
+    {
+      "id": 632,
+      "name": "Salts",
+      "parent_id": null
+    },
+    {
+      "id": 408,
+      "name": "Secondary Packaging",
+      "parent_id": null
+    },
+    {
+      "id": 492,
+      "name": "Semifinished Products and Bulks",
+      "parent_id": null
+    },
+    {
+      "id": 429,
+      "name": "Serums",
+      "parent_id": null
+    },
+    {
+      "id": 410,
+      "name": "Services",
+      "parent_id": null
+    },
+    {
+      "id": 668,
+      "name": "SERVICES",
+      "parent_id": null
+    },
+    {
+      "id": 664,
+      "name": "Sexual Wellness",
+      "parent_id": null
+    },
+    {
+      "id": 453,
+      "name": "Shampoos + Conditioners",
+      "parent_id": null
+    },
+    {
+      "id": 633,
+      "name": "Shining and Sparkling Agents",
+      "parent_id": null
+    },
+    {
+      "id": 634,
+      "name": "Silicas and Silicates",
+      "parent_id": null
+    },
+    {
+      "id": 598,
+      "name": "Silicons",
+      "parent_id": null
+    },
+    {
+      "id": 495,
+      "name": "Single-Dose Packaging",
+      "parent_id": null
+    },
+    {
+      "id": 401,
+      "name": "Skin Care",
+      "parent_id": null
+    },
+    {
+      "id": 439,
+      "name": "Skin Concern",
+      "parent_id": null
+    },
+    {
+      "id": 635,
+      "name": "Slimming Agents",
+      "parent_id": null
+    },
+    {
+      "id": 636,
+      "name": "Smoothing Agents",
+      "parent_id": null
+    },
+    {
+      "id": 637,
+      "name": "Softening Texturing Agents",
+      "parent_id": null
+    },
+    {
+      "id": 639,
+      "name": "Solubilizers",
+      "parent_id": null
+    },
+    {
+      "id": 599,
+      "name": "Solvents",
+      "parent_id": null
+    },
+    {
+      "id": 638,
+      "name": "Soothing Agents",
+      "parent_id": null
+    },
+    {
+      "id": 430,
+      "name": "SPF",
+      "parent_id": null
+    },
+    {
+      "id": 457,
+      "name": "Sprays + Mousses",
+      "parent_id": null
+    },
+    {
+      "id": 640,
+      "name": "Starches",
+      "parent_id": null
+    },
+    {
+      "id": 641,
+      "name": "Stearates",
+      "parent_id": null
+    },
+    {
+      "id": 584,
+      "name": "Sundry Materials",
+      "parent_id": null
+    },
+    {
+      "id": 589,
+      "name": "Sundry Materials",
+      "parent_id": null
+    },
+    {
+      "id": 727,
+      "name": "Supplements",
+      "parent_id": null
+    },
+    {
+      "id": 398,
+      "name": "SUPPLY CHAIN CATEGORIES",
+      "parent_id": null
+    },
+    {
+      "id": 592,
+      "name": "Surfactants and Texture Modifiers",
+      "parent_id": null
+    },
+    {
+      "id": 573,
+      "name": "Test & Analysis",
+      "parent_id": null
+    },
+    {
+      "id": 414,
+      "name": "Testing/analytical service",
+      "parent_id": null
+    },
+    {
+      "id": 642,
+      "name": "Thickeners and Stabilizers",
+      "parent_id": null
+    },
+    {
+      "id": 643,
+      "name": "Toning and Tensing Effect Agents",
+      "parent_id": null
+    },
+    {
+      "id": 436,
+      "name": "Tools & Devices",
+      "parent_id": null
+    },
+    {
+      "id": 459,
+      "name": "Tools & Devices",
+      "parent_id": null
+    },
+    {
+      "id": 464,
+      "name": "Tools & Devices",
+      "parent_id": null
+    },
+    {
+      "id": 644,
+      "name": "Triglycerides",
+      "parent_id": null
+    },
+    {
+      "id": 645,
+      "name": "Urea Compounds",
+      "parent_id": null
+    },
+    {
+      "id": 603,
+      "name": "UV Filters",
+      "parent_id": null
+    },
+    {
+      "id": 419,
+      "name": "Vegan",
+      "parent_id": null
+    },
+    {
+      "id": 646,
+      "name": "Vegetal Oils, Fats and Butters",
+      "parent_id": null
+    },
+    {
+      "id": 510,
+      "name": "Warehouse Management Technologies and Equipments",
+      "parent_id": null
+    },
+    {
+      "id": 647,
+      "name": "Waterproofing Agents",
+      "parent_id": null
+    },
+    {
+      "id": 602,
+      "name": "Waxes",
+      "parent_id": null
+    },
+    {
+      "id": 458,
+      "name": "Waxes + Pomades",
+      "parent_id": null
+    },
+    {
+      "id": 663,
+      "name": "Wellness/Fitness",
+      "parent_id": null
+    },
+    {
+      "id": 648,
+      "name": "Wetting Agents",
+      "parent_id": null
+    },
+    {
+      "id": 859,
+      "name": "Wigs + Extensions + Enhancements",
+      "parent_id": null
+    },
+    {
+      "id": 581,
+      "name": "Wooden",
+      "parent_id": null
+    },
+    {
+      "id": 666,
+      "name": "Youth/Young Adult",
+      "parent_id": null
+    }
+  ],
+  "custom_filters": {
+    "HallCode": [
+      {
+        "value": "option-1",
+        "name": "Cosmopack (Supply Chain)"
+      },
+      {
+        "value": "option-2",
+        "name": "Skin Care, Makeup & Fragrance"
+      },
+      {
+        "value": "option-6",
+        "name": "Nails"
+      },
+      {
+        "value": "option-8",
+        "name": "Hair Care"
+      },
+      {
+        "value": "option-7",
+        "name": "Specialty"
+      },
+      {
+        "value": "option-4",
+        "name": "Meeting Rooms"
+      }
+    ],
+    "PavilionCode": [
+      {
+        "value": "option-2",
+        "name": "The Beauty Vanities"
+      },
+      {
+        "value": "option-3",
+        "name": "Discover Beauty"
+      },
+      {
+        "value": "option-6",
+        "name": "Korean Beauty"
+      },
+      {
+        "value": "option-4",
+        "name": "China Pavilion"
+      },
+      {
+        "value": "option-5",
+        "name": "Dominican Republic Pavilion"
+      },
+      {
+        "value": "option-1",
+        "name": "Korea Pavilion"
+      }
+    ]
+  }
+}

@@ -21,8 +21,8 @@ from modules.candidate_filter import filter_candidates
 from modules.exhibitions.cosmoprof_asia import (
     get_all_exhibitors,
 )
-from modules.exhibitions.cosmoprof_north_america_cache import (
-    load_cached_exhibitors,
+from modules.exhibitions.cpna_dynamic_search import (
+    search_cpna_candidates,
 )
 from datetime import datetime
 EMPTY_TAIWAN_RESULT = {
@@ -214,40 +214,60 @@ def build_records(
             )
 
             continue
-
         page_text = fetch_website_text(url)
 
-        # 官網無法讀取，但有官方展覽資料時，
-        # 仍建立一筆待人工確認紀錄。
+        # 官網無法讀取時，優先使用官方展覽描述，
+        # 並繼續交給 website_classifier 判斷。
         if not page_text:
-            if source_metadata:
-                fallback_record = (
-                    build_exhibition_fallback_record(
-                        url=url,
-                        source=source,
-                        source_metadata=(
-                            source_metadata
-                        ),
-                        index=(
-                            start_index
-                            + len(records)
-                        ),
-                        search_profile=(
-                            search_profile
-                        ),
-                    )
+            exhibition_description = str(
+                source_metadata.get(
+                    "展覽描述",
+                    "",
                 )
+                or ""
+            ).strip()
+
+            if exhibition_description:
+                company_name = str(
+                    source_metadata.get(
+                        "展覽公司名稱",
+                        "",
+                    )
+                    or ""
+                ).strip()
+
+                exhibition_category = str(
+                    source_metadata.get(
+                        "展覽商品分類",
+                        "",
+                    )
+                    or ""
+                ).strip()
 
                 print(
-                    "[EXHIBITION FALLBACK] "
-                    f"{fallback_record['公司名稱']}"
+                    "[USE EXHIBITION DESCRIPTION] "
+                    f"{company_name}"
                 )
 
-                records.append(
-                    fallback_record
+                page_text = (
+                    "Official exhibition company description:\n"
+                    f"{exhibition_description}\n\n"
+                    "Official exhibition company name:\n"
+                    f"{company_name}\n\n"
+                    "Official exhibition category:\n"
+                    f"{exhibition_category}"
                 )
 
-            continue
+            elif source_metadata:
+                print(
+                    "[EXHIBITION SKIPPED - NO CONTENT] "
+                    f"{source_metadata.get('展覽公司名稱', '')}"
+                )
+
+                continue
+
+            else:
+                continue
 
         classification = classify_website(
             url=url,
@@ -258,12 +278,12 @@ def build_records(
         print(
             url,
             classification,
-        )
+            )
 
         if not classification.get(
-            "is_candidate"
-        ):
-            continue
+                 "is_candidate"
+            ):
+                    continue
 
         record = analyze_brand_page(
             url=url,
@@ -547,12 +567,15 @@ def collect_cosmoprof_north_america_urls(
     max_count,
 ):
     """
-    從 Cosmoprof North America 本機完整快取
-    取得參展商，並使用共用 SearchProfile 篩選。
+    根據本次 SearchProfile 動態匹配 CPNA 官方分類，
+    再透過官方 API 取得最新展商。
 
-    此處不使用固定展區或 HallCode。
+    流程：
+    1. 將搜尋需求匹配成最新 business_area ID。
+    2. 即時查詢 CPNA 官方 API。
+    3. 合併本地快取的官網、描述與國家。
+    4. 送入既有網站爬取與分析流程。
     """
-
     if max_count <= 0:
         print(
             "[COSMOPROF NORTH AMERICA DISABLED] "
@@ -560,50 +583,155 @@ def collect_cosmoprof_north_america_urls(
         )
         return []
 
-    try:
-        exhibitors = load_cached_exhibitors()
+    query = str(
+        search_profile.query
+        or ""
+    ).strip()
 
-    except (
-        FileNotFoundError,
-        RuntimeError,
-    ) as error:
+    if not query:
+        query_parts = []
+
+        query_parts.extend(
+            str(keyword).strip()
+            for keyword
+            in search_profile.positioning_keywords
+            if str(keyword).strip()
+        )
+
+        query_parts.extend(
+            str(keyword).strip()
+            for keyword
+            in search_profile.product_keywords
+            if str(keyword).strip()
+        )
+
+        query = " ".join(
+            query_parts
+        ).strip()
+
+    if not query:
         print(
-            "[COSMOPROF NORTH AMERICA CACHE ERROR]",
+            "[CPNA DYNAMIC SEARCH SKIPPED] "
+            "本次沒有可用的商品搜尋需求"
+        )
+        return []
+
+    try:
+        result = search_cpna_candidates(
+            query=query,
+            max_records=None,
+        )
+
+    except Exception as error:
+        print(
+            "[CPNA DYNAMIC SEARCH ERROR]",
             error,
         )
         return []
 
-    matched_exhibitors = filter_candidates(
-        exhibitors,
-        search_profile,
+    if result.get("error"):
+        print(
+            "[CPNA DYNAMIC SEARCH ERROR]",
+            result["error"],
+        )
+        return []
+
+    business_area_ids = result.get(
+        "business_area_ids",
+        [],
+    )
+
+    candidates = result.get(
+        "candidates",
+        [],
     )
 
     print(
-        "[COSMOPROF NORTH AMERICA FILTER] "
-        f"{len(exhibitors)} 筆中符合 "
-        f"{len(matched_exhibitors)} 筆"
+        "[CPNA DYNAMIC CATEGORIES] "
+        f"{business_area_ids}"
     )
 
-    source_items = []
+    print(
+        "[CPNA DYNAMIC CANDIDATES] "
+        f"官方候選共 {len(candidates)} 家"
+    )
 
-    for exhibitor in matched_exhibitors:
+    positioning_names = [
+        str(
+            match.get("name")
+            or ""
+        ).strip()
+        for match in result.get(
+            "positioning_matches",
+            [],
+        )
+        if str(
+            match.get("name")
+            or ""
+        ).strip()
+    ]
+
+    source_items = []
+    skipped_without_url = 0
+
+    for exhibitor in candidates:
         official_url = str(
             exhibitor.get(
                 "official_url",
                 "",
             )
+            or ""
         ).strip()
 
         if not official_url:
+            skipped_without_url += 1
             continue
 
-        source = exhibitor.get(
-            "source",
-            (
+        source = str(
+            exhibitor.get(
+                "source",
+                "",
+            )
+            or (
                 "Cosmoprof North America "
                 "Las Vegas 2026"
-            ),
+            )
+        ).strip()
+
+        official_category_names = []
+
+        for category_id in (
+            business_area_ids
+        ):
+            category_text = str(
+                category_id
+            )
+
+            if (
+                category_text
+                not in official_category_names
+            ):
+                official_category_names.append(
+                    category_text
+                )
+
+        exhibition_category = (
+            str(
+                exhibitor.get(
+                    "product_category",
+                    "",
+                )
+                or ""
+            ).strip()
         )
+
+        if not exhibition_category:
+            exhibition_category = (
+                "CPNA business_area IDs: "
+                + ", ".join(
+                    official_category_names
+                )
+            )
 
         metadata = {
             "展覽名稱": exhibitor.get(
@@ -622,9 +750,8 @@ def collect_cosmoprof_north_america_urls(
                 "company_name",
                 "",
             ),
-            "展覽商品分類": exhibitor.get(
-                "product_category",
-                "",
+            "展覽商品分類": (
+                exhibition_category
             ),
             "展覽參展類型": exhibitor.get(
                 "exhibitor_type",
@@ -637,6 +764,26 @@ def collect_cosmoprof_north_america_urls(
             "展覽國家": exhibitor.get(
                 "country",
                 "",
+            ),
+            "展覽描述": exhibitor.get(
+                "description",
+                "",
+            ),
+            "展覽官方網站": exhibitor.get(
+                "official_url",
+                "",
+            ),
+            "CPNA官方分類ID": (
+                ", ".join(
+                    str(category_id)
+                    for category_id
+                    in business_area_ids
+                )
+            ),
+            "CPNA定位條件": (
+                " / ".join(
+                    positioning_names
+                )
             ),
         }
 
@@ -655,6 +802,12 @@ def collect_cosmoprof_north_america_urls(
         "[COSMOPROF NORTH AMERICA URLS] "
         f"送入後續分析 {len(source_items)} 筆"
     )
+
+    if skipped_without_url:
+        print(
+            "[CPNA WITHOUT OFFICIAL URL] "
+            f"略過 {skipped_without_url} 家"
+        )
 
     return source_items
 

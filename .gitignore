@@ -29,3 +29,18 @@ data/cache/
 api_probe.txt
 asia_api_result.txt
 data/cosmoprof_asia_preview.json
+
+# Local Excel outputs
+data/output.xlsx
+data/output_backup.xlsx
+
+# CPNA temporary/debug files
+cpna_category_probe.txt
+cpna_search_results_*.txt
+data/cpna_debug/
+data/exhibitions/backups/
+data/exhibitions/*_test_backup.json
+
+# Python cache
+__pycache__/
+*.pyc
