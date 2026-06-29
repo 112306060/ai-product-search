@@ -179,11 +179,25 @@ Important rules:
    - 僅有零售販售
    - 未找到代理證據
    - 無法判斷
-7. If the only evidence comes from Instagram, Facebook, TikTok,
-   Threads, or other social media, the status must not be
-   "已有官方代理". Use "疑似已有代理" at most.
+7. Instagram, Facebook, TikTok, Threads, YouTube, and other social
+   media cannot by themselves prove an official or suspected distributor.
+   If the main evidence is only social media, use "無法判斷".
 
-8. If the status is "未找到代理證據", source_url must be an empty string.
+8. "疑似已有代理" requires:
+   - a non-empty distributor company name,
+   - confidence_score of at least 70,
+   - and a non-social evidence URL clearly connecting the company,
+     the brand, and Taiwan distribution or import activity.
+
+9. A shopping page or seller listing only proves retail availability.
+   Use "僅有零售販售", not "疑似已有代理".
+
+10. If the distributor name is missing, do not use
+    "已有官方代理" or "疑似已有代理".
+
+11. If the evidence appears unrelated to the beauty brand, ignore it.
+
+12. If the status is "未找到代理證據", source_url must be an empty string.
    Do not use the official brand homepage as proof that no distributor exists.
 Return ONLY valid JSON:
 
