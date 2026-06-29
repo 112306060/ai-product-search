@@ -21,6 +21,9 @@ from modules.candidate_filter import filter_candidates
 from modules.exhibitions.cosmoprof_asia import (
     get_all_exhibitors,
 )
+from modules.exhibitions.cosmoprof_north_america_cache import (
+    load_cached_exhibitors,
+)
 from datetime import datetime
 EMPTY_TAIWAN_RESULT = {
     "台灣代理狀態": "未執行",
@@ -539,7 +542,186 @@ def collect_cosmoprof_asia_urls(
 
     return source_items
 
+def collect_cosmoprof_north_america_urls(
+    search_profile,
+    max_count,
+):
+    """
+    從 Cosmoprof North America 本機完整快取
+    取得參展商，並使用共用 SearchProfile 篩選。
 
+    此處不使用固定展區或 HallCode。
+    """
+
+    if max_count <= 0:
+        print(
+            "[COSMOPROF NORTH AMERICA DISABLED] "
+            "本次未啟用 North America 展覽來源"
+        )
+        return []
+
+    try:
+        exhibitors = load_cached_exhibitors()
+
+    except (
+        FileNotFoundError,
+        RuntimeError,
+    ) as error:
+        print(
+            "[COSMOPROF NORTH AMERICA CACHE ERROR]",
+            error,
+        )
+        return []
+
+    matched_exhibitors = filter_candidates(
+        exhibitors,
+        search_profile,
+    )
+
+    print(
+        "[COSMOPROF NORTH AMERICA FILTER] "
+        f"{len(exhibitors)} 筆中符合 "
+        f"{len(matched_exhibitors)} 筆"
+    )
+
+    source_items = []
+
+    for exhibitor in matched_exhibitors:
+        official_url = str(
+            exhibitor.get(
+                "official_url",
+                "",
+            )
+        ).strip()
+
+        if not official_url:
+            continue
+
+        source = exhibitor.get(
+            "source",
+            (
+                "Cosmoprof North America "
+                "Las Vegas 2026"
+            ),
+        )
+
+        metadata = {
+            "展覽名稱": exhibitor.get(
+                "exhibition",
+                "",
+            ),
+            "展覽年份": exhibitor.get(
+                "exhibition_year",
+                "",
+            ),
+            "展覽攤位": exhibitor.get(
+                "booth",
+                "",
+            ),
+            "展覽公司名稱": exhibitor.get(
+                "company_name",
+                "",
+            ),
+            "展覽商品分類": exhibitor.get(
+                "product_category",
+                "",
+            ),
+            "展覽參展類型": exhibitor.get(
+                "exhibitor_type",
+                "",
+            ),
+            "展覽來源頁面": exhibitor.get(
+                "source_url",
+                "",
+            ),
+            "展覽國家": exhibitor.get(
+                "country",
+                "",
+            ),
+        }
+
+        source_items.append(
+            (
+                official_url,
+                source,
+                metadata,
+            )
+        )
+
+        if len(source_items) >= max_count:
+            break
+
+    print(
+        "[COSMOPROF NORTH AMERICA URLS] "
+        f"送入後續分析 {len(source_items)} 筆"
+    )
+
+    return source_items
+
+def merge_exhibition_source_items(
+    source_groups,
+    max_count,
+):
+    """
+    將不同展覽來源交錯合併並依網域去重。
+
+    避免 Asia 排在前面時，
+    在測試模式把全部名額用完，
+    導致 North America 沒有進入後續分析。
+    """
+
+    if max_count <= 0:
+        return []
+
+    merged = []
+    seen_domains = set()
+
+    largest_group_size = max(
+        (
+            len(group)
+            for group in source_groups
+        ),
+        default=0,
+    )
+
+    for index in range(
+        largest_group_size
+    ):
+        for group in source_groups:
+            if index >= len(group):
+                continue
+
+            source_item = group[index]
+
+            if not source_item:
+                continue
+
+            url = source_item[0]
+            domain = get_main_domain(url)
+
+            dedupe_key = (
+                domain
+                or str(url).strip().lower()
+            )
+
+            if not dedupe_key:
+                continue
+
+            if dedupe_key in seen_domains:
+                continue
+
+            seen_domains.add(
+                dedupe_key
+            )
+
+            merged.append(
+                source_item
+            )
+
+            if len(merged) >= max_count:
+                return merged
+
+    return merged
 def collect_exhibition_urls(
     config,
     exhibition_limit,
@@ -615,19 +797,55 @@ def run_search_pipeline(
     google_limit, exhibition_limit = (
         get_search_limits(config)
     )
-
+    # 展覽來源需要先準備較大的候選池。
+    # exhibition_limit 代表最後要留下的合格筆數，
+    # 不是前期只准取多少候選網址。
+    exhibition_candidate_limit = max(
+        exhibition_limit * 10,
+        20,
+    )
     google_urls = collect_google_urls(
         config=config,
         search_profile=search_profile,
     )
 
-    exhibition_urls = (
+    asia_exhibition_urls = (
         collect_cosmoprof_asia_urls(
             search_profile=search_profile,
-            max_count=exhibition_limit,
+            max_count=(
+                exhibition_candidate_limit
+            ),
         )
     )
 
+    north_america_exhibition_urls = (
+        collect_cosmoprof_north_america_urls(
+            search_profile=search_profile,
+            max_count=(
+                exhibition_candidate_limit
+            ),
+        )
+    )
+
+    exhibition_urls = (
+        merge_exhibition_source_items(
+            source_groups=[
+                asia_exhibition_urls,
+                north_america_exhibition_urls,
+            ],
+            max_count=(
+                exhibition_candidate_limit
+            ),
+        )
+    )
+
+    print(
+        "[EXHIBITION SOURCES MERGED] "
+        f"Asia {len(asia_exhibition_urls)} 筆，"
+        "North America "
+        f"{len(north_america_exhibition_urls)} 筆，"
+        f"合併後 {len(exhibition_urls)} 筆"
+    )
     existing_domains = (
         load_recent_existing_domains(
             output_path=config.output_path,
@@ -733,9 +951,8 @@ def run_search_pipeline(
     )
 
     print(
-        "Cosmoprof Asia records: "
-        f"{len(exhibition_records)}"
-    )
-
+    "Official exhibition records: "
+    f"{len(exhibition_records)}"
+)
     return export_summary
 

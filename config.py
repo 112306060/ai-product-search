@@ -80,5 +80,5 @@ DEFAULT_SEARCH_PROFILE = SearchProfile(
     require_official_url=True,
     require_product_match=True,
     require_positioning_match=True,
-    allow_unknown_country=False,
+    allow_unknown_country=True,
 )
