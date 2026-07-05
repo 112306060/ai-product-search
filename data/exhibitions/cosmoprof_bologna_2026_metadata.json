@@ -2,41 +2,2306 @@
   "event": "Cosmoprof Worldwide Bologna 2026",
   "year": 2026,
   "category_stats": {
-    "C107": {
-      "name": "Hair wash products (lotions, powders, shampoos)",
-      "official_total": 231,
-      "records_received": 231
+    "I": {
+      "name": "AESTHETIC MEDICINE",
+      "official_total": 68,
+      "records_received": 68
     },
-    "C110": {
-      "name": "Natural and bio products for hair treatment",
+    "I1": {
+      "name": "Other electromedical devices",
+      "official_total": 40,
+      "records_received": 40
+    },
+    "I101": {
+      "name": "Other electromedical devices",
+      "official_total": 40,
+      "records_received": 40
+    },
+    "I2": {
+      "name": "Biostimulation",
+      "official_total": 32,
+      "records_received": 32
+    },
+    "I201": {
+      "name": "Biostimulation",
+      "official_total": 32,
+      "records_received": 32
+    },
+    "M": {
+      "name": "BEAUTYTECH",
+      "official_total": 79,
+      "records_received": 79
+    },
+    "M1": {
+      "name": "Digital Platforms",
+      "official_total": 11,
+      "records_received": 11
+    },
+    "M101": {
+      "name": "Augmented Reality",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "M102": {
+      "name": "Virtual Reality",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "M103": {
+      "name": "Artificial Intelligence",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "M2": {
+      "name": "Retail solutions and devices",
+      "official_total": 53,
+      "records_received": 53
+    },
+    "M201": {
+      "name": "IOT Internet of things",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "M203": {
+      "name": "Devices",
+      "official_total": 51,
+      "records_received": 51
+    },
+    "M3": {
+      "name": "Biotech",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "M301": {
+      "name": "Biotech",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "M4": {
+      "name": "Nanotech",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "M401": {
+      "name": "Nanotech",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "Q": {
+      "name": "BUSINESS SERVICES FOR THE COSMETICS INDUSTRY",
+      "official_total": 74,
+      "records_received": 74
+    },
+    "Q1": {
+      "name": "Services",
+      "official_total": 74,
+      "records_received": 74
+    },
+    "Q101": {
+      "name": "Consultancy",
+      "official_total": 20,
+      "records_received": 20
+    },
+    "Q102": {
+      "name": "Marketing and market research services",
+      "official_total": 14,
+      "records_received": 14
+    },
+    "Q103": {
+      "name": "Digital services",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "Q104": {
+      "name": "Creative media",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "Q105": {
+      "name": "Financial and insurance services",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "Q107": {
+      "name": "Payment systems",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "Q108": {
+      "name": "Sanitation services",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "Q109": {
+      "name": "Professional training",
+      "official_total": 15,
+      "records_received": 15
+    },
+    "Q110": {
+      "name": "Regulatory services",
+      "official_total": 20,
+      "records_received": 20
+    },
+    "Q111": {
+      "name": "Other",
+      "official_total": 28,
+      "records_received": 28
+    },
+    "G": {
+      "name": "CASH & CARRY",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "G1": {
+      "name": "Retail of accessories, products, equipment",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "G101": {
+      "name": "Fashion accessories",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "G102": {
+      "name": "Hair accessories",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "G103": {
+      "name": "Costume Jewellery for professional hair salons",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "G108": {
+      "name": "Retail of equipment and tools for hairdressers",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "G109": {
+      "name": "Retail of products for hairdressers",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "G110": {
+      "name": "Resale of equipment for beauticians",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "G111": {
+      "name": "Promotional items",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "G112": {
+      "name": "Resale of products for perfumeries",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F": {
+      "name": "COSMOPACK",
+      "official_total": 832,
+      "records_received": 832
+    },
+    "F1": {
+      "name": "Primary & secondary packaging",
+      "official_total": 265,
+      "records_received": 265
+    },
+    "F101": {
+      "name": "Metal cases",
+      "official_total": 12,
+      "records_received": 12
+    },
+    "F102": {
+      "name": "Cardboard cases/boxes",
+      "official_total": 35,
+      "records_received": 35
+    },
+    "F103": {
+      "name": "Plastic cases",
+      "official_total": 48,
+      "records_received": 48
+    },
+    "F104": {
+      "name": "Fabric cases",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "F105": {
+      "name": "Cases in sundry materials",
+      "official_total": 12,
+      "records_received": 12
+    },
+    "F106": {
+      "name": "Atomizers, aerosol valves, dispensers",
+      "official_total": 63,
+      "records_received": 63
+    },
+    "F107": {
+      "name": "Capsules, caps, closures in sundry materials",
+      "official_total": 64,
+      "records_received": 64
+    },
+    "F108": {
+      "name": "Wooden capsules, caps, closures",
+      "official_total": 34,
+      "records_received": 34
+    },
+    "F109": {
+      "name": "Plastic capsules, caps, closures",
+      "official_total": 134,
+      "records_received": 134
+    },
+    "F110": {
+      "name": "Metal capsules, caps, closures",
+      "official_total": 46,
+      "records_received": 46
+    },
+    "F112": {
+      "name": "Containers in sundry materials",
+      "official_total": 32,
+      "records_received": 32
+    },
+    "F113": {
+      "name": "Plastic containers (bottles, jars, phials/ampoules, tubes, trays, sample sachets, mini pouches, ecorefill )",
+      "official_total": 173,
+      "records_received": 173
+    },
+    "F114": {
+      "name": "Metal containers (aerosol cans, bottles, tubes)",
+      "official_total": 47,
+      "records_received": 47
+    },
+    "F116": {
+      "name": "Glass containers (bottles, jars, phials/ampoules)",
+      "official_total": 108,
+      "records_received": 108
+    },
+    "F117": {
+      "name": "Adhesive labels",
+      "official_total": 16,
+      "records_received": 16
+    },
+    "F118": {
+      "name": "Non-adhesive labels",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "F119": {
+      "name": "Leaflets (explanatory sheets)",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "F120": {
+      "name": "Wrapping material",
+      "official_total": 17,
+      "records_received": 17
+    },
+    "F121": {
+      "name": "Packing and shipping material",
+      "official_total": 18,
+      "records_received": 18
+    },
+    "F122": {
+      "name": "Pressing ribbons and tissues",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F123": {
+      "name": "Finishing and decorations",
+      "official_total": 55,
+      "records_received": 55
+    },
+    "F124": {
+      "name": "Pumps and valves",
+      "official_total": 86,
+      "records_received": 86
+    },
+    "F126": {
+      "name": "Glass factices",
+      "official_total": 13,
+      "records_received": 13
+    },
+    "F127": {
+      "name": "Cases and beauty cases",
+      "official_total": 20,
+      "records_received": 20
+    },
+    "F128": {
+      "name": "Testers",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "F129": {
+      "name": "Stamped metal and clay pans components for baked powder make-up",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "F130": {
+      "name": "Sustainable packaging",
+      "official_total": 152,
+      "records_received": 152
+    },
+    "F2": {
+      "name": "Accessories and components for the cosmetic industry",
+      "official_total": 44,
+      "records_received": 44
+    },
+    "F201": {
+      "name": "Accessories",
+      "official_total": 20,
+      "records_received": 20
+    },
+    "F202": {
+      "name": "Applicators",
+      "official_total": 23,
+      "records_received": 23
+    },
+    "F204": {
+      "name": "Droppers",
+      "official_total": 22,
+      "records_received": 22
+    },
+    "F205": {
+      "name": "Litography",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F206": {
+      "name": "Brushes for the cosmetic industry",
+      "official_total": 18,
+      "records_received": 18
+    },
+    "F207": {
+      "name": "Puffs",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "F209": {
+      "name": "Cosmetic wipes",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "F210": {
+      "name": "Sponges",
+      "official_total": 13,
+      "records_received": 13
+    },
+    "F212": {
+      "name": "Sharpeners",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "F3": {
+      "name": "Private label, contract manufacturing and contract services(OEM/ODM)",
+      "official_total": 497,
+      "records_received": 497
+    },
+    "F301": {
+      "name": "Semifinished products and bulks",
       "official_total": 112,
       "records_received": 112
     },
-    "B106": {
-      "name": "Natural Hair products",
-      "official_total": 164,
-      "records_received": 164
+    "F302": {
+      "name": "Aerosol products",
+      "official_total": 16,
+      "records_received": 16
     },
-    "B116": {
-      "name": "Certified organic cosmetic products",
-      "official_total": 129,
-      "records_received": 129
+    "F303": {
+      "name": "Cosmetic products face, body treatment and sun care",
+      "official_total": 316,
+      "records_received": 316
     },
-    "A112": {
-      "name": "Hair care products",
-      "official_total": 267,
-      "records_received": 267
+    "F304": {
+      "name": "Single-dose products",
+      "official_total": 49,
+      "records_received": 49
+    },
+    "F305": {
+      "name": "Make-up products",
+      "official_total": 139,
+      "records_received": 139
+    },
+    "F306": {
+      "name": "Hair removal products",
+      "official_total": 75,
+      "records_received": 75
     },
     "F307": {
       "name": "Haircare",
       "official_total": 144,
       "records_received": 144
     },
+    "F308": {
+      "name": "Manufacture of plasters and adhesive bandages",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "F309": {
+      "name": "Nail polish",
+      "official_total": 67,
+      "records_received": 67
+    },
+    "F312": {
+      "name": "Oral care products",
+      "official_total": 34,
+      "records_received": 34
+    },
+    "F313": {
+      "name": "OTC products",
+      "official_total": 27,
+      "records_received": 27
+    },
+    "F314": {
+      "name": "Organic, Vegan, Bio and Halal products (Make-up, Skincare, Nail polish)",
+      "official_total": 170,
+      "records_received": 170
+    },
+    "F315": {
+      "name": "Mask tissues",
+      "official_total": 23,
+      "records_received": 23
+    },
+    "F316": {
+      "name": "Make-up pencils",
+      "official_total": 42,
+      "records_received": 42
+    },
+    "F317": {
+      "name": "Fragrances",
+      "official_total": 36,
+      "records_received": 36
+    },
+    "F318": {
+      "name": "Scented products (fresheners, candels)",
+      "official_total": 24,
+      "records_received": 24
+    },
+    "F319": {
+      "name": "Packaging development and manufacturing",
+      "official_total": 97,
+      "records_received": 97
+    },
+    "F320": {
+      "name": "Filling service",
+      "official_total": 83,
+      "records_received": 83
+    },
+    "F321": {
+      "name": "Extracting service",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "F322": {
+      "name": "Full service",
+      "official_total": 128,
+      "records_received": 128
+    },
     "F323": {
       "name": "Hair wash products (lotions, powders, shampoos)",
       "official_total": 126,
       "records_received": 126
+    },
+    "F324": {
+      "name": "Hair conditioning products",
+      "official_total": 98,
+      "records_received": 98
+    },
+    "F325": {
+      "name": "Hair colours and bleaches",
+      "official_total": 33,
+      "records_received": 33
+    },
+    "F326": {
+      "name": "Hair treatment products (ampoules and masks)",
+      "official_total": 91,
+      "records_received": 91
+    },
+    "F4": {
+      "name": "Equipment, machinery and automation systems for the cosmetic industry",
+      "official_total": 83,
+      "records_received": 83
+    },
+    "F401": {
+      "name": "Seaming machines",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "F402": {
+      "name": "Laboratory equipment",
+      "official_total": 21,
+      "records_received": 21
+    },
+    "F403": {
+      "name": "Case packaging machines",
+      "official_total": 16,
+      "records_received": 16
+    },
+    "F405": {
+      "name": "Rolling machines",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "F406": {
+      "name": "Cartoning machines",
+      "official_total": 14,
+      "records_received": 14
+    },
+    "F407": {
+      "name": "Coding and printing machines",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "F408": {
+      "name": "Compacting machines",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "F409": {
+      "name": "Fluid dosing machines",
+      "official_total": 29,
+      "records_received": 29
+    },
+    "F410": {
+      "name": "Paste dosing machines",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "F411": {
+      "name": "Powder dosing equipment",
+      "official_total": 14,
+      "records_received": 14
+    },
+    "F412": {
+      "name": "Labelling machines",
+      "official_total": 24,
+      "records_received": 24
+    },
+    "F413": {
+      "name": "Hot/cold gluing machines",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F414": {
+      "name": "Tube fillers",
+      "official_total": 24,
+      "records_received": 24
+    },
+    "F415": {
+      "name": "Tampographic and screen printing presses",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "F416": {
+      "name": "Conditioning machinery",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "F417": {
+      "name": "Packaging machines",
+      "official_total": 41,
+      "records_received": 41
+    },
+    "F418": {
+      "name": "Laser coding systems",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "F419": {
+      "name": "Melters",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "F420": {
+      "name": "Dust micronizers",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F421": {
+      "name": "Manufacture of powder tablets, coated tablets, granulates, liquids-solid-semisolid",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "F422": {
+      "name": "Tanks for fluids",
+      "official_total": 12,
+      "records_received": 12
+    },
+    "F423": {
+      "name": "Label printers",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F424": {
+      "name": "Water treatment",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "F425": {
+      "name": "Vacuum turboemulsifiers",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "F426": {
+      "name": "Folding machines",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F427": {
+      "name": "Feeders",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "F428": {
+      "name": "Automation systems for beauty industry",
+      "official_total": 41,
+      "records_received": 41
+    },
+    "F429": {
+      "name": "Warehouse handling system",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F430": {
+      "name": "Robotics, components for the automation",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "F431": {
+      "name": "Instruments and devices for the vision and inspection",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "F5": {
+      "name": "Warehouse Technologies and Logistic Services ",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F501": {
+      "name": "Cases, boxes, crates, bulk bags",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F502": {
+      "name": "Logistic services",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F6": {
+      "name": "Raw materials and ingredients",
+      "official_total": 23,
+      "records_received": 23
+    },
+    "F601": {
+      "name": "Fragrances",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "F602": {
+      "name": "Fragrances for fine toiletries",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "F603": {
+      "name": "Fragrances for cosmetics and toiletries",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "F604": {
+      "name": "Surfactants and texture modifiers",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F605": {
+      "name": "Fats and glycerin esters",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F606": {
+      "name": "Emollients and umectants",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F607": {
+      "name": "Emulsifiers and solubilizers",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F608": {
+      "name": "Opacifiers",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F609": {
+      "name": "Antiseptics and preservatives",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "F610": {
+      "name": "Silicons",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F611": {
+      "name": "Solvents",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F612": {
+      "name": "Colors and pigments",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "F613": {
+      "name": "Antioxidants",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "F614": {
+      "name": "Waxes",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "F615": {
+      "name": "UV filters",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F616": {
+      "name": "Essential oils and plant extracts (or botanicals)",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "F617": {
+      "name": "Flavours",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "F618": {
+      "name": "Acetates",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F619": {
+      "name": "Acids",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F620": {
+      "name": "Actives",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "F621": {
+      "name": "Alcohols",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F622": {
+      "name": "Anionics",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F623": {
+      "name": "Anti-Ageing and Anti-Wrinkle",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "F625": {
+      "name": "Anti-pollution",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F626": {
+      "name": "Butters",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F627": {
+      "name": "Cellulose and derivates",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F628": {
+      "name": "Clays",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F629": {
+      "name": "Cleansing agents",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F630": {
+      "name": "Exfoliants and peeling agents",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F631": {
+      "name": "Foaming agents",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F632": {
+      "name": "Gums",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F633": {
+      "name": "Lubrificants",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F634": {
+      "name": "Minerals",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F635": {
+      "name": "Moisturisers",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "F636": {
+      "name": "Nourishing agents",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F637": {
+      "name": "Nutraceutic ingredients",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F638": {
+      "name": "Parabens",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F639": {
+      "name": "Pectins",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F641": {
+      "name": "Polymers",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "F642": {
+      "name": "Protective agents",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F643": {
+      "name": "Proteins",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F644": {
+      "name": "Purifying agents",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F645": {
+      "name": "Repearing and revitalizing agents",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F646": {
+      "name": "Salts",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F647": {
+      "name": "Shining and sparkling agents",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F648": {
+      "name": "Silicas and silicates",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F649": {
+      "name": "Slimming agents",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F650": {
+      "name": "Smoothing agents",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F651": {
+      "name": "Softening texturing agents",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F652": {
+      "name": "Soothing agents",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F653": {
+      "name": "Solubilizers",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F654": {
+      "name": "Starches",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F655": {
+      "name": "Stearates",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F656": {
+      "name": "Thickeners and stabilizers",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F657": {
+      "name": "Toning and Tensing effect agents",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F658": {
+      "name": "Triglycerides",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F659": {
+      "name": "Urea compounds",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F660": {
+      "name": "Vegetal oils, fats and butters",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "F661": {
+      "name": "Waterproofing agents",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F662": {
+      "name": "Wetting agents",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "F663": {
+      "name": "Others",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "F8": {
+      "name": "Testing/analytical service",
+      "official_total": 11,
+      "records_received": 11
+    },
+    "F801": {
+      "name": "Lab Equipment & services",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "F802": {
+      "name": "Test & Analysis",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "F803": {
+      "name": "Laboratory furniture",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "F804": {
+      "name": "Product safety - dossier",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F805": {
+      "name": "Quality - certification",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "F9": {
+      "name": "Trade press",
+      "official_total": 11,
+      "records_received": 11
+    },
+    "F901": {
+      "name": "Trade book",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "F902": {
+      "name": "Trade Magazines",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "F904": {
+      "name": "Association publications",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "C": {
+      "name": "HAIR",
+      "official_total": 512,
+      "records_received": 512
+    },
+    "C1": {
+      "name": "Professional cosmetics for hair stylists",
+      "official_total": 276,
+      "records_received": 276
+    },
+    "C102": {
+      "name": "Hair conditioning products",
+      "official_total": 229,
+      "records_received": 229
+    },
+    "C103": {
+      "name": "Hair treatment products (ampoules and masks)",
+      "official_total": 212,
+      "records_received": 212
+    },
+    "C104": {
+      "name": "Hair styling products",
+      "official_total": 190,
+      "records_received": 190
+    },
+    "C106": {
+      "name": "Perming, straight-styling and fixing products",
+      "official_total": 124,
+      "records_received": 124
+    },
+    "C107": {
+      "name": "Hair wash products (lotions, powders, shampoos)",
+      "official_total": 231,
+      "records_received": 231
+    },
+    "C108": {
+      "name": "Hair colours and bleaches",
+      "official_total": 144,
+      "records_received": 144
+    },
+    "C110": {
+      "name": "Natural and bio products for hair treatment",
+      "official_total": 112,
+      "records_received": 112
+    },
+    "C111": {
+      "name": "Natural and bio hair dyes",
+      "official_total": 50,
+      "records_received": 50
+    },
+    "C2": {
+      "name": "Furnishings, accessories and items for hair stylists",
+      "official_total": 72,
+      "records_received": 72
+    },
+    "C202": {
+      "name": "Professional clothing and for salon's clients, and professional work linen (towels, etc...)",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "C203": {
+      "name": "Furnishings for hair stylists",
+      "official_total": 20,
+      "records_received": 20
+    },
+    "C204": {
+      "name": "Furnishings and seats for reception and waiting area",
+      "official_total": 16,
+      "records_received": 16
+    },
+    "C205": {
+      "name": "Promotional articles and material for sales activity",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "C207": {
+      "name": "Hair-curlers",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "C208": {
+      "name": "Hair, locks, extensions",
+      "official_total": 16,
+      "records_received": 16
+    },
+    "C209": {
+      "name": "Color charts",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "C210": {
+      "name": "Caps",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "C211": {
+      "name": "Salon Backwash Units & Washpoints, professional chairs",
+      "official_total": 20,
+      "records_received": 20
+    },
+    "C212": {
+      "name": "Wigs / toupets / hair extensions",
+      "official_total": 21,
+      "records_received": 21
+    },
+    "C214": {
+      "name": "Hydraulic pumps for chairs",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "C215": {
+      "name": "Carts for tools",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "C218": {
+      "name": "Hair styling training heads with hair",
+      "official_total": 11,
+      "records_received": 11
+    },
+    "C219": {
+      "name": "Vaporizers",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "C3": {
+      "name": "Equipment for hair stylists",
+      "official_total": 173,
+      "records_received": 173
+    },
+    "C301": {
+      "name": "Equipment and systems for sterilization",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "C302": {
+      "name": "Articles and equipment for hair stylists",
+      "official_total": 58,
+      "records_received": 58
+    },
+    "C303": {
+      "name": "Hairdryers",
+      "official_total": 74,
+      "records_received": 74
+    },
+    "C304": {
+      "name": "Drying hoods",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "C305": {
+      "name": "Hair tongs and straighteners",
+      "official_total": 58,
+      "records_received": 58
+    },
+    "C306": {
+      "name": "Professional scissors and razors",
+      "official_total": 51,
+      "records_received": 51
+    },
+    "C308": {
+      "name": "Brushes",
+      "official_total": 82,
+      "records_received": 82
+    },
+    "C309": {
+      "name": "Powder brushes",
+      "official_total": 13,
+      "records_received": 13
+    },
+    "C310": {
+      "name": "Thermic brushes",
+      "official_total": 39,
+      "records_received": 39
+    },
+    "C311": {
+      "name": "Trimmers",
+      "official_total": 44,
+      "records_received": 44
+    },
+    "C312": {
+      "name": "Hair clippers",
+      "official_total": 61,
+      "records_received": 61
+    },
+    "C314": {
+      "name": "Hair videocameras",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "C4": {
+      "name": "Services for hair stylists",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "C402": {
+      "name": "Hair salon services and franchising",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "C403": {
+      "name": "Computerized simulation systems",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "C404": {
+      "name": "Business management software",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "C405": {
+      "name": "Salon appointment booking platforms",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "C5": {
+      "name": "Shaving and grooming products",
+      "official_total": 60,
+      "records_received": 60
+    },
+    "C501": {
+      "name": "Pre-shave products (oil, gel, cream)",
+      "official_total": 26,
+      "records_received": 26
+    },
+    "C502": {
+      "name": "Shaving products (gel, foam, soap)",
+      "official_total": 27,
+      "records_received": 27
+    },
+    "C503": {
+      "name": "Aftershave products (gel, balm, lotion)",
+      "official_total": 33,
+      "records_received": 33
+    },
+    "C504": {
+      "name": "Brushes",
+      "official_total": 15,
+      "records_received": 15
+    },
+    "C505": {
+      "name": "Razors and blades",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "C506": {
+      "name": "Beard's set",
+      "official_total": 12,
+      "records_received": 12
+    },
+    "C507": {
+      "name": "Beard's accessories (brush, comb, scissor)",
+      "official_total": 27,
+      "records_received": 27
+    },
+    "C508": {
+      "name": "Moustache and beard care products (balm, pomade)",
+      "official_total": 27,
+      "records_received": 27
+    },
+    "E": {
+      "name": "NAIL",
+      "official_total": 186,
+      "records_received": 186
+    },
+    "E1": {
+      "name": "Nail reconstruction and artificial eyelashes",
+      "official_total": 186,
+      "records_received": 186
+    },
+    "E101": {
+      "name": "Stickers and additional items",
+      "official_total": 32,
+      "records_received": 32
+    },
+    "E102": {
+      "name": "Equipment",
+      "official_total": 59,
+      "records_received": 59
+    },
+    "E103": {
+      "name": "Hand trainer for nail technicians",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "E104": {
+      "name": "Products for nail reconstruction",
+      "official_total": 62,
+      "records_received": 62
+    },
+    "E105": {
+      "name": "Artificial nails, eyelashes and extensions",
+      "official_total": 55,
+      "records_received": 55
+    },
+    "E106": {
+      "name": "Semipermanent Gel, UV/Led Gels, Color Gel",
+      "official_total": 59,
+      "records_received": 59
+    },
+    "E107": {
+      "name": "Scissors, files, buffers and nail clippers",
+      "official_total": 63,
+      "records_received": 63
+    },
+    "E108": {
+      "name": "Polish, gel, base and top coat",
+      "official_total": 78,
+      "records_received": 78
+    },
+    "E109": {
+      "name": "Nail Design and Nail Art",
+      "official_total": 70,
+      "records_received": 70
+    },
+    "E111": {
+      "name": "Tips and artificial nails",
+      "official_total": 50,
+      "records_received": 50
+    },
+    "E113": {
+      "name": "Acrylic powder",
+      "official_total": 21,
+      "records_received": 21
+    },
+    "E114": {
+      "name": "Nail care products",
+      "official_total": 103,
+      "records_received": 103
+    },
+    "E116": {
+      "name": "Dryers and UV Led Lamps",
+      "official_total": 60,
+      "records_received": 60
+    },
+    "E118": {
+      "name": "Creams and Anti-fungal products",
+      "official_total": 23,
+      "records_received": 23
+    },
+    "B": {
+      "name": "NATURAL & ORGANIC",
+      "official_total": 353,
+      "records_received": 353
+    },
+    "B1": {
+      "name": "Natural & Organic products",
+      "official_total": 353,
+      "records_received": 353
+    },
+    "B101": {
+      "name": "Natural Toiletries",
+      "official_total": 97,
+      "records_received": 97
+    },
+    "B102": {
+      "name": "Natural Baby products",
+      "official_total": 79,
+      "records_received": 79
+    },
+    "B105": {
+      "name": "Phytotherapic, homeopathic and aromateraphy products",
+      "official_total": 23,
+      "records_received": 23
+    },
+    "B106": {
+      "name": "Natural Hair products",
+      "official_total": 164,
+      "records_received": 164
+    },
+    "B107": {
+      "name": "Natural, vegan and mineral make-up products",
+      "official_total": 56,
+      "records_received": 56
+    },
+    "B108": {
+      "name": "Natural man products",
+      "official_total": 105,
+      "records_received": 105
+    },
+    "B109": {
+      "name": "Natural face and body care products",
+      "official_total": 267,
+      "records_received": 267
+    },
+    "B110": {
+      "name": "Natural home fragrances",
+      "official_total": 32,
+      "records_received": 32
+    },
+    "B111": {
+      "name": "Natural perfumes & fragrances",
+      "official_total": 48,
+      "records_received": 48
+    },
+    "B112": {
+      "name": "Natural sun care products",
+      "official_total": 97,
+      "records_received": 97
+    },
+    "B113": {
+      "name": "Infusions and food supplements",
+      "official_total": 32,
+      "records_received": 32
+    },
+    "B116": {
+      "name": "Certified organic cosmetic products",
+      "official_total": 129,
+      "records_received": 129
+    },
+    "B117": {
+      "name": "Probiotics",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "B118": {
+      "name": "Halal Cosmetics",
+      "official_total": 33,
+      "records_received": 33
+    },
+    "B119": {
+      "name": "Ayurvedic products",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "B120": {
+      "name": "Natural toothbrushes and toothpaste",
+      "official_total": 39,
+      "records_received": 39
+    },
+    "A": {
+      "name": "PERFUMERY AND COSMETICS",
+      "official_total": 855,
+      "records_received": 855
+    },
+    "A1": {
+      "name": "Cosmetic products for perfumery shops",
+      "official_total": 731,
+      "records_received": 731
+    },
+    "A102": {
+      "name": "Cosmetic products based on thermal ingredients (spa lines)",
+      "official_total": 68,
+      "records_received": 68
+    },
+    "A103": {
+      "name": "Baby care",
+      "official_total": 105,
+      "records_received": 105
+    },
+    "A104": {
+      "name": "Skincare (hands, foot, face etc.)",
+      "official_total": 476,
+      "records_received": 476
+    },
+    "A105": {
+      "name": "Deodorant and antisudorific products",
+      "official_total": 88,
+      "records_received": 88
+    },
+    "A106": {
+      "name": "Foundations and camouflage",
+      "official_total": 99,
+      "records_received": 99
+    },
+    "A107": {
+      "name": "Face packs and masks",
+      "official_total": 202,
+      "records_received": 202
+    },
+    "A108": {
+      "name": "Toiletries & Personal care (salt, foam, oils, gel etc.)",
+      "official_total": 229,
+      "records_received": 229
+    },
+    "A109": {
+      "name": "Self-tanning products",
+      "official_total": 67,
+      "records_received": 67
+    },
+    "A110": {
+      "name": "Anti-wrinkle products",
+      "official_total": 284,
+      "records_received": 284
+    },
+    "A112": {
+      "name": "Hair care products",
+      "official_total": 267,
+      "records_received": 267
+    },
+    "A113": {
+      "name": "Make-up",
+      "official_total": 216,
+      "records_received": 216
+    },
+    "A114": {
+      "name": "Hands & Feet care products",
+      "official_total": 195,
+      "records_received": 195
+    },
+    "A115": {
+      "name": "Hair removal products",
+      "official_total": 47,
+      "records_received": 47
+    },
+    "A116": {
+      "name": "Shaving products",
+      "official_total": 44,
+      "records_received": 44
+    },
+    "A118": {
+      "name": "Oral care products",
+      "official_total": 58,
+      "records_received": 58
+    },
+    "A119": {
+      "name": "Nail polish and nail polish remover",
+      "official_total": 66,
+      "records_received": 66
+    },
+    "A120": {
+      "name": "Intimate care",
+      "official_total": 79,
+      "records_received": 79
+    },
+    "A123": {
+      "name": "Skin whiteners",
+      "official_total": 91,
+      "records_received": 91
+    },
+    "A124": {
+      "name": "Sun care products",
+      "official_total": 247,
+      "records_received": 247
+    },
+    "A125": {
+      "name": "Fragrances and perfumes",
+      "official_total": 221,
+      "records_received": 221
+    },
+    "A126": {
+      "name": "Soaps",
+      "official_total": 138,
+      "records_received": 138
+    },
+    "A128": {
+      "name": "Contact lenses",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "A129": {
+      "name": "False eye-lashes",
+      "official_total": 39,
+      "records_received": 39
+    },
+    "A130": {
+      "name": "Hair dyes",
+      "official_total": 43,
+      "records_received": 43
+    },
+    "A131": {
+      "name": "make-up remover",
+      "official_total": 198,
+      "records_received": 198
+    },
+    "A132": {
+      "name": "refillable products",
+      "official_total": 35,
+      "records_received": 35
+    },
+    "A133": {
+      "name": "multi-purpose products",
+      "official_total": 120,
+      "records_received": 120
+    },
+    "A134": {
+      "name": "microbiome analysis",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "A135": {
+      "name": "customisable fragrances and products",
+      "official_total": 111,
+      "records_received": 111
+    },
+    "A3": {
+      "name": "Gift and travel items, promotional and personal care accessories",
+      "official_total": 125,
+      "records_received": 125
+    },
+    "A301": {
+      "name": "Terry cloth items (slippers, bathrobes, etc...)",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "A302": {
+      "name": "Plasters",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "A309": {
+      "name": "Gift sets",
+      "official_total": 68,
+      "records_received": 68
+    },
+    "A311": {
+      "name": "UV protection devices",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "A312": {
+      "name": "Ribbons, labels, gift wrapping material",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "A315": {
+      "name": "Brushes, beauty blenders and accessories for make-up",
+      "official_total": 55,
+      "records_received": 55
+    },
+    "A317": {
+      "name": "Scissors, tweezers, and eyelash curlers",
+      "official_total": 36,
+      "records_received": 36
+    },
+    "A321": {
+      "name": "Hair accessories",
+      "official_total": 26,
+      "records_received": 26
+    },
+    "A322": {
+      "name": "Combs and brushes",
+      "official_total": 33,
+      "records_received": 33
+    },
+    "A323": {
+      "name": "Mirrors",
+      "official_total": 27,
+      "records_received": 27
+    },
+    "A324": {
+      "name": "Sponges",
+      "official_total": 31,
+      "records_received": 31
+    },
+    "A325": {
+      "name": "Beauty and manicure cases",
+      "official_total": 45,
+      "records_received": 45
+    },
+    "A4": {
+      "name": "Furnishing, accessories, products and services for perfumery shops",
+      "official_total": 29,
+      "records_received": 29
+    },
+    "A403": {
+      "name": "Products for perfumery shops",
+      "official_total": 14,
+      "records_received": 14
+    },
+    "A404": {
+      "name": "Services and promotional material for perfumery shops",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "A406": {
+      "name": "Interior fragrances",
+      "official_total": 22,
+      "records_received": 22
+    },
+    "A407": {
+      "name": "Products for aromatherapy",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "A408": {
+      "name": "Furnishing for perfumery shops",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "A5": {
+      "name": "Men care",
+      "official_total": 90,
+      "records_received": 90
+    },
+    "A501": {
+      "name": "Pre-shave products (oil, gel, cream)",
+      "official_total": 34,
+      "records_received": 34
+    },
+    "A502": {
+      "name": "Shaving products (gel, foam, soap)",
+      "official_total": 33,
+      "records_received": 33
+    },
+    "A503": {
+      "name": "Aftershave products (gel, balm, lotion)",
+      "official_total": 50,
+      "records_received": 50
+    },
+    "A504": {
+      "name": "Brushes",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "A505": {
+      "name": "Razors and blades",
+      "official_total": 12,
+      "records_received": 12
+    },
+    "A506": {
+      "name": "Beard's set",
+      "official_total": 17,
+      "records_received": 17
+    },
+    "A507": {
+      "name": "Beard's accessories (brush, comb, scissor)",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "A508": {
+      "name": "Moustache care products (balm, wax)",
+      "official_total": 28,
+      "records_received": 28
+    },
+    "A509": {
+      "name": "Make-up",
+      "official_total": 11,
+      "records_received": 11
+    },
+    "A510": {
+      "name": "Skincare",
+      "official_total": 67,
+      "records_received": 67
+    },
+    "A6": {
+      "name": "Cosmetic home devices",
+      "official_total": 53,
+      "records_received": 53
+    },
+    "A601": {
+      "name": "Electronic devices",
+      "official_total": 27,
+      "records_received": 27
+    },
+    "A602": {
+      "name": "Non-electronic devices",
+      "official_total": 36,
+      "records_received": 36
+    },
+    "A7": {
+      "name": "Sexual wellness",
+      "official_total": 10,
+      "records_received": 10
+    },
+    "A701": {
+      "name": "Skincare",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "A702": {
+      "name": "Other",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "A703": {
+      "name": "Devices",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "H": {
+      "name": "PHARMACY & HEALTH AND BEAUTY SHOP",
+      "official_total": 295,
+      "records_received": 295
+    },
+    "H1": {
+      "name": "Cosmetic products for pharmacy shop",
+      "official_total": 295,
+      "records_received": 295
+    },
+    "H101": {
+      "name": "Cosmetic products for pharmacy shop",
+      "official_total": 295,
+      "records_received": 295
+    },
+    "L": {
+      "name": "PRESS",
+      "official_total": 15,
+      "records_received": 15
+    },
+    "L1": {
+      "name": "Consumer press",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "L101": {
+      "name": "Free press",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "L102": {
+      "name": "Consumer Books",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "L103": {
+      "name": "Newspapers",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "L104": {
+      "name": "Consumer Magazines",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "L2": {
+      "name": "Trade press",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "L201": {
+      "name": "Trade book",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "L202": {
+      "name": "Trade Magazines",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "L204": {
+      "name": "Association publications",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "L3": {
+      "name": "Associations",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "L303": {
+      "name": "Association",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "L304": {
+      "name": "Board",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "L4": {
+      "name": "P.R. agency",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "L401": {
+      "name": "PR Agency",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "L5": {
+      "name": "Advertising agency",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "L501": {
+      "name": "Advertising agency",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "D": {
+      "name": "SPA & BEAUTY",
+      "official_total": 519,
+      "records_received": 519
+    },
+    "D1": {
+      "name": "Professional cosmetic products for beauty salons & Spas",
+      "official_total": 362,
+      "records_received": 362
+    },
+    "D101": {
+      "name": "Body painting / tatoos (items and products)",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "D102": {
+      "name": "Cosmetic products for retail",
+      "official_total": 297,
+      "records_received": 297
+    },
+    "D103": {
+      "name": "Creams, emulsions, lotions, gels, oils, bath muds and salts",
+      "official_total": 231,
+      "records_received": 231
+    },
+    "D106": {
+      "name": "Professional make -up/Camouflage products",
+      "official_total": 54,
+      "records_received": 54
+    },
+    "D107": {
+      "name": "Face packs/mask (hot and cold)",
+      "official_total": 138,
+      "records_received": 138
+    },
+    "D108": {
+      "name": "Feet care products",
+      "official_total": 87,
+      "records_received": 87
+    },
+    "D109": {
+      "name": "Hair removal products",
+      "official_total": 43,
+      "records_received": 43
+    },
+    "D110": {
+      "name": "Nail care products and nail polishes",
+      "official_total": 31,
+      "records_received": 31
+    },
+    "D111": {
+      "name": "Halal Cosmetics",
+      "official_total": 32,
+      "records_received": 32
+    },
+    "D112": {
+      "name": "Natural cosmetic products for professional use",
+      "official_total": 179,
+      "records_received": 179
+    },
+    "D2": {
+      "name": "Furnishing and accessories for beauty salons / spas / thermal centers",
+      "official_total": 70,
+      "records_received": 70
+    },
+    "D201": {
+      "name": "Professional clothing",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "D202": {
+      "name": "Accessories for manicure/pedicure",
+      "official_total": 26,
+      "records_received": 26
+    },
+    "D204": {
+      "name": "Furnishings for beauty salons, gym and physiotherapeutic centres",
+      "official_total": 22,
+      "records_received": 22
+    },
+    "D206": {
+      "name": "Tools and promotional material for sales activity",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "D207": {
+      "name": "Sponge and fabric articles (slippers, bath wraps, etc.)",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "D209": {
+      "name": "Disposable items for applications and treatments",
+      "official_total": 17,
+      "records_received": 17
+    },
+    "D210": {
+      "name": "Items for applications and treatments",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "D212": {
+      "name": "Professional linen: blankets, towels, etc...",
+      "official_total": 8,
+      "records_received": 8
+    },
+    "D213": {
+      "name": "Hotel amenities",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "D214": {
+      "name": "Candle massage",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "D215": {
+      "name": "Beauty salon couches, beds and chairs",
+      "official_total": 29,
+      "records_received": 29
+    },
+    "D216": {
+      "name": "Mattresses",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "D218": {
+      "name": "Spa furniture and Beauty salon chairs",
+      "official_total": 27,
+      "records_received": 27
+    },
+    "D220": {
+      "name": "Perfumes and aromatherapy products",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "D3": {
+      "name": "Equipment for beauty salons / spa / thermal centers",
+      "official_total": 131,
+      "records_received": 131
+    },
+    "D301": {
+      "name": "Sterilizing equipment and systems",
+      "official_total": 6,
+      "records_received": 6
+    },
+    "D302": {
+      "name": "Electro mechanical oscillating and vibrating equipment",
+      "official_total": 21,
+      "records_received": 21
+    },
+    "D303": {
+      "name": "Suction massage equipment",
+      "official_total": 23,
+      "records_received": 23
+    },
+    "D304": {
+      "name": "Ionophoresis beauty therapy equipment",
+      "official_total": 17,
+      "records_received": 17
+    },
+    "D305": {
+      "name": "Blackhead suction equipment",
+      "official_total": 13,
+      "records_received": 13
+    },
+    "D306": {
+      "name": "Air massage equipment",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "D307": {
+      "name": "Electrical oscillating, rotating and drumming massage equipment",
+      "official_total": 17,
+      "records_received": 17
+    },
+    "D309": {
+      "name": "Skin-level mechanical massage equipment",
+      "official_total": 30,
+      "records_received": 30
+    },
+    "D310": {
+      "name": "Mechanical drumming massage equipment",
+      "official_total": 17,
+      "records_received": 17
+    },
+    "D311": {
+      "name": "Equipment for cryotherapy",
+      "official_total": 21,
+      "records_received": 21
+    },
+    "D312": {
+      "name": "Water massage equipment",
+      "official_total": 5,
+      "records_received": 5
+    },
+    "D313": {
+      "name": "Presso-massage equipment",
+      "official_total": 27,
+      "records_received": 27
+    },
+    "D315": {
+      "name": "Partial or total heat treatment equipment",
+      "official_total": 20,
+      "records_received": 20
+    },
+    "D316": {
+      "name": "Hydro, balneo, thalasso therapy tools",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "D317": {
+      "name": "Spa equipment and items",
+      "official_total": 41,
+      "records_received": 41
+    },
+    "D318": {
+      "name": "Equipment and devices for passive and aesthetic exercises",
+      "official_total": 19,
+      "records_received": 19
+    },
+    "D319": {
+      "name": "Manicure/pedicure equipment",
+      "official_total": 18,
+      "records_received": 18
+    },
+    "D320": {
+      "name": "Shower booths",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "D321": {
+      "name": "Electric and electronic hair removal devices",
+      "official_total": 24,
+      "records_received": 24
+    },
+    "D322": {
+      "name": "Shower",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "D323": {
+      "name": "Thread-like showers and atomizer",
+      "official_total": 2,
+      "records_received": 2
+    },
+    "D324": {
+      "name": "Electro stimulators through impulses",
+      "official_total": 25,
+      "records_received": 25
+    },
+    "D325": {
+      "name": "UVA tanning lamps",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "D326": {
+      "name": "Quartz lamps with combined or indipendent applications of ultra-violet (UV) and infra-red (IR) rays",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "D327": {
+      "name": "Aesthetic laser",
+      "official_total": 44,
+      "records_received": 44
+    },
+    "D329": {
+      "name": "Equipment, products and accessories for scrub & peeling",
+      "official_total": 32,
+      "records_received": 32
+    },
+    "D330": {
+      "name": "Electrical and manual rolls",
+      "official_total": 20,
+      "records_received": 20
+    },
+    "D331": {
+      "name": "Saunas and turkish baths",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "D332": {
+      "name": "Wax heaters for depilatory wax",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "D333": {
+      "name": "Blue-light stimulator with electrodes for aesthetic use (high frequency)",
+      "official_total": 11,
+      "records_received": 11
+    },
+    "D334": {
+      "name": "Blue stimulators (high frequency or ultrasound)",
+      "official_total": 16,
+      "records_received": 16
+    },
+    "D335": {
+      "name": "Steam and ionized steam vaporisers",
+      "official_total": 4,
+      "records_received": 4
+    },
+    "D336": {
+      "name": "Swimming pools, baths and hydromassage baths",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "D337": {
+      "name": "Products, accessories and equipment for dermopigmentation",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "D338": {
+      "name": "Lighting equipment and systems",
+      "official_total": 17,
+      "records_received": 17
+    },
+    "D339": {
+      "name": "Microcameras for diagnosys",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "D4": {
+      "name": "Services for beauty salons / spa / thermal centers",
+      "official_total": 7,
+      "records_received": 7
+    },
+    "D401": {
+      "name": "Architecture and design",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "D402": {
+      "name": "Consultants",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "D403": {
+      "name": "Structural elements",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "D404": {
+      "name": "Spa water treatment",
+      "official_total": 0,
+      "records_received": 0
+    },
+    "D405": {
+      "name": "Interior design",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "D406": {
+      "name": "Franchising services",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "D408": {
+      "name": "Software",
+      "official_total": 1,
+      "records_received": 1
+    },
+    "D409": {
+      "name": "Spa management and educational services",
+      "official_total": 3,
+      "records_received": 3
+    },
+    "D5": {
+      "name": "Wellness / Fitness",
+      "official_total": 26,
+      "records_received": 26
+    },
+    "D501": {
+      "name": "Machinery, equipment, accessories for fitness and gym",
+      "official_total": 9,
+      "records_received": 9
+    },
+    "D504": {
+      "name": "Food supplements",
+      "official_total": 18,
+      "records_received": 18
+    },
+    "D506": {
+      "name": "Sport and energetic drinks",
+      "official_total": 4,
+      "records_received": 4
     }
   },
-  "total_unique_exhibitors": 677
+  "total_unique_exhibitors": 2505
 }

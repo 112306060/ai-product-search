@@ -11,6 +11,8 @@
   僅供參考，不同商品類別/地區冷門程度會有落差。
 """
 
+import dataclasses
+
 from modules.candidate_filter import filter_candidates
 from modules.exhibitions.cosmoprof_asia import (
     get_all_exhibitors as get_all_asia_exhibitors,
@@ -34,6 +36,12 @@ TAIWAN_OUTPUT_TOKENS = 80
 
 OPENAI_INPUT_PRICE_PER_1M_USD = 0.40
 OPENAI_OUTPUT_PRICE_PER_1M_USD = 1.60
+
+# 實測 48 組關鍵字去重後拿到 122 個不重複網域
+# （不同關鍵字組合搜尋結果高度重疊，不是每組都拿到全新的 10 筆），
+# 換算每組關鍵字平均貢獻約 2.5 個不重複候選，
+# 比原本假設「每組 10 筆全新結果」更貼近實際情況。
+GOOGLE_UNIQUE_RESULTS_PER_KEYWORD = 2.5
 
 # 平行化後，用 target_count=10 實測全流程 246.9 秒
 # （20 家：10 Google + 10 展覽）校正出的經驗值。
@@ -143,10 +151,20 @@ def estimate_search_cost(
             get_all_bologna_exhibitors()
         )
 
+        # Bologna 的定位詞判斷交給後續 AI 分析
+        # （原因見 search_pipeline.py 的說明），
+        # 這裡的估算要跟實際 pipeline 行為一致。
+        bologna_filter_profile = (
+            dataclasses.replace(
+                search_profile,
+                require_positioning_match=False,
+            )
+        )
+
         bologna_matched_count = len(
             filter_candidates(
                 bologna_exhibitors,
-                search_profile,
+                bologna_filter_profile,
             )
         )
 
@@ -173,9 +191,13 @@ def estimate_search_cost(
             google_limit
             / ASSUMED_ACCEPTANCE_RATE
         ),
-        # Google 候選池大小無法事先得知，用關鍵字數*平均每組
-        # 結果數(10)當作粗略上限。
-        google_keyword_count * 10,
+        # Google 候選池大小無法事先得知，
+        # 用實測校正過的「每組關鍵字平均不重複候選數」
+        # 當作粗略上限。
+        round(
+            google_keyword_count
+            * GOOGLE_UNIQUE_RESULTS_PER_KEYWORD
+        ),
     )
 
     exhibition_examined_estimate = min(

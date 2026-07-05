@@ -436,6 +436,21 @@ def score_category(
                 f"phrase:{term}"
             )
 
+        # 官方分類名稱有時候會把片語黏在一起寫
+        # （例如 "Haircare" vs 我們展開的 "hair care"），
+        # 純粹只是有沒有空格的差異，語意上完全相同，
+        # 這裡另外做去除空格後的比對，避免漏掉這種分類。
+        elif normalized_term.replace(
+            " ", ""
+        ) == normalized_category.replace(
+            " ", ""
+        ):
+            score += 45
+
+            reasons.append(
+                f"phrase_no_space:{term}"
+            )
+
         shared_tokens = (
             term_tokens
             & category_tokens

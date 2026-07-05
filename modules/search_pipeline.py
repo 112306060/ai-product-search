@@ -1,3 +1,4 @@
+import dataclasses
 from concurrent.futures import (
     ThreadPoolExecutor,
     as_completed,
@@ -723,15 +724,29 @@ def collect_cosmoprof_bologna_urls(
         )
         return []
 
+    # Bologna 官方名錄的 description 完全是合成文字
+    # （分類名稱＋展區＋場次日期），沒有任何真實品牌介紹，
+    # 定位詞（organic/natural/vegan）比對在這裡並不可靠——
+    # 只有剛好被歸類在名稱本身含有這些字的分類下才會通過，
+    # 會誤刷掉許多真正符合定位、但被歸在通用分類的公司。
+    # 因此先只用商品詞篩選，定位判斷交給後面「找到真官網
+    # →AI 讀真實內容」那一步（跟 North America 的作法一致：
+    # North America 本來就不在這裡做文字定位比對）。
+    bologna_filter_profile = dataclasses.replace(
+        search_profile,
+        require_positioning_match=False,
+    )
+
     matched_exhibitors = filter_candidates(
         exhibitors,
-        search_profile,
+        bologna_filter_profile,
     )
 
     print(
         "[COSMOPROF BOLOGNA FILTER] "
         f"{len(exhibitors)} 筆中符合 "
         f"{len(matched_exhibitors)} 筆"
+        "（此來源定位詞判斷交由後續 AI 分析）"
     )
 
     # Bologna 每家展商的 official_url 目前一定非空
