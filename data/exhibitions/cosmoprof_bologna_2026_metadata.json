@@ -1,0 +1,42 @@
+{
+  "event": "Cosmoprof Worldwide Bologna 2026",
+  "year": 2026,
+  "category_stats": {
+    "C107": {
+      "name": "Hair wash products (lotions, powders, shampoos)",
+      "official_total": 231,
+      "records_received": 231
+    },
+    "C110": {
+      "name": "Natural and bio products for hair treatment",
+      "official_total": 112,
+      "records_received": 112
+    },
+    "B106": {
+      "name": "Natural Hair products",
+      "official_total": 164,
+      "records_received": 164
+    },
+    "B116": {
+      "name": "Certified organic cosmetic products",
+      "official_total": 129,
+      "records_received": 129
+    },
+    "A112": {
+      "name": "Hair care products",
+      "official_total": 267,
+      "records_received": 267
+    },
+    "F307": {
+      "name": "Haircare",
+      "official_total": 144,
+      "records_received": 144
+    },
+    "F323": {
+      "name": "Hair wash products (lotions, powders, shampoos)",
+      "official_total": 126,
+      "records_received": 126
+    }
+  },
+  "total_unique_exhibitors": 677
+}
