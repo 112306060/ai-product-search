@@ -16,6 +16,11 @@ class SearchConfig:
     check_taiwan_distributor: bool = True
     force_refresh_taiwan: bool = False
     taiwan_cache_days: int = 7
+
+    # Bologna 官方名錄沒有公開展商官網，
+    # 是否改用公司名稱查詢 Google 找出真正官網
+    # （找到才會走一般爬取與 AI 分析流程）。
+    resolve_bologna_official_websites: bool = True
     # 是否跳過近期已分析的品牌
     skip_existing_brands: bool = True
 

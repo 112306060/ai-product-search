@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from modules.ai_analyzer import analyze_brand_page
 from modules.crawler import fetch_website_text
 from modules.excel_exporter import (
@@ -21,10 +23,17 @@ from modules.candidate_filter import filter_candidates
 from modules.exhibitions.cosmoprof_asia import (
     get_all_exhibitors,
 )
+from modules.exhibitions.cosmoprof_bologna import (
+    get_all_exhibitors as get_all_bologna_exhibitors,
+)
 from modules.exhibitions.cpna_dynamic_search import (
     search_cpna_candidates,
 )
-from datetime import datetime
+from modules.exhibitions.cosmoprof_bologna_website_finder import (
+    resolve_official_website as resolve_bologna_official_website,
+)
+
+
 EMPTY_TAIWAN_RESULT = {
     "台灣代理狀態": "未執行",
     "台灣代理商名稱": "",
@@ -145,8 +154,6 @@ def build_exhibition_fallback_record(
     }
 
 
-
-
 def build_records(
     urls_with_source,
     start_index,
@@ -214,6 +221,28 @@ def build_records(
             )
 
             continue
+        is_bologna_exhibition_page = (
+            source_metadata
+            and "Bologna" in str(source)
+            and "cosmoprof.com" in str(url)
+        )
+
+        if is_bologna_exhibition_page:
+            print(
+                "[BOLOGNA FALLBACK RECORD] "
+                f"{source_metadata.get('展覽公司名稱', '')}"
+            )
+
+            record = build_exhibition_fallback_record(
+                url=url,
+                source=source,
+                source_metadata=source_metadata,
+                index=start_index + len(records),
+                search_profile=search_profile,
+            )
+
+            records.append(record)
+            continue
         page_text = fetch_website_text(url)
 
         # 官網無法讀取時，優先使用官方展覽描述，
@@ -278,12 +307,12 @@ def build_records(
         print(
             url,
             classification,
-            )
+        )
 
         if not classification.get(
-                 "is_candidate"
-            ):
-                    continue
+            "is_candidate"
+        ):
+            continue
 
         record = analyze_brand_page(
             url=url,
@@ -400,8 +429,6 @@ def build_records(
         )
 
     return records
-
-
 
 
 def collect_google_urls(
@@ -562,6 +589,177 @@ def collect_cosmoprof_asia_urls(
 
     return source_items
 
+
+def collect_cosmoprof_bologna_urls(
+    search_profile,
+    max_count,
+    resolve_official_website=True,
+):
+    """
+    從 Cosmoprof Bologna 官方 cache 取得展商，
+    依照 SearchProfile 篩選，並保留展覽資料。
+
+    resolve_official_website：
+        Bologna 官方名錄本身沒有公開展商官網，
+        預設會用公司名稱查詢 Google 找出真正官網，
+        找到的話就能走一般爬取與 AI 分析流程；
+        找不到才維持原本的展覽描述 fallback。
+    """
+
+    if max_count <= 0:
+        print(
+            "[COSMOPROF BOLOGNA DISABLED] "
+            "本次未啟用 Bologna 官方展覽來源"
+        )
+        return []
+
+    try:
+        exhibitors = (
+            get_all_bologna_exhibitors()
+        )
+
+    except Exception as error:
+        print(
+            "[COSMOPROF BOLOGNA ERROR]",
+            error,
+        )
+        return []
+
+    matched_exhibitors = filter_candidates(
+        exhibitors,
+        search_profile,
+    )
+
+    print(
+        "[COSMOPROF BOLOGNA FILTER] "
+        f"{len(exhibitors)} 筆中符合 "
+        f"{len(matched_exhibitors)} 筆"
+    )
+
+    source_items = []
+
+    for exhibitor in matched_exhibitors:
+        official_url = exhibitor.get(
+            "official_url",
+            "",
+        )
+
+        if not official_url:
+            continue
+
+        company_name = exhibitor.get(
+            "company_name",
+            "",
+        )
+
+        found_website = ""
+
+        if resolve_official_website and company_name:
+            try:
+                found_website = (
+                    resolve_bologna_official_website(
+                        company_name
+                    )
+                )
+
+            except Exception as error:
+                print(
+                    "[BOLOGNA WEBSITE LOOKUP ERROR] "
+                    f"{company_name}: {error}"
+                )
+
+        if found_website:
+            official_url = found_website
+
+        source = exhibitor.get(
+            "source",
+            "Cosmoprof Bologna",
+        )
+
+        metadata = {
+            "展覽名稱": exhibitor.get(
+                "exhibition",
+                "",
+            ),
+            "展覽年份": exhibitor.get(
+                "exhibition_year",
+                "",
+            ),
+            "展覽攤位": exhibitor.get(
+                "booth",
+                "",
+            ),
+            "展覽公司名稱": exhibitor.get(
+                "company_name",
+                "",
+            ),
+            "展覽商品分類": exhibitor.get(
+                "product_category",
+                "",
+            ),
+            "展覽參展類型": exhibitor.get(
+                "exhibitor_type",
+                "",
+            ),
+            "展覽來源頁面": exhibitor.get(
+                "source_url",
+                "",
+            ),
+            "展覽國家": exhibitor.get(
+                "country",
+                "",
+            ),
+            "展覽描述": exhibitor.get(
+                "description",
+                "",
+            ),
+            "Bologna官方分類代碼": (
+                ", ".join(
+                    str(code)
+                    for code in exhibitor.get(
+                        "bologna_category_codes",
+                        [],
+                    )
+                )
+            ),
+            "Bologna官方分類名稱": (
+                " / ".join(
+                    str(name)
+                    for name in exhibitor.get(
+                        "bologna_category_names",
+                        [],
+                    )
+                )
+            ),
+            "BolognaHall": exhibitor.get(
+                "bologna_hall",
+                "",
+            ),
+            "BolognaStand": exhibitor.get(
+                "bologna_stand",
+                "",
+            ),
+        }
+
+        source_items.append(
+            (
+                official_url,
+                source,
+                metadata,
+            )
+        )
+
+        if len(source_items) >= max_count:
+            break
+
+    print(
+        "[COSMOPROF BOLOGNA URLS] "
+        f"送入後續分析 {len(source_items)} 筆"
+    )
+
+    return source_items
+
+
 def collect_cosmoprof_north_america_urls(
     search_profile,
     max_count,
@@ -576,6 +774,7 @@ def collect_cosmoprof_north_america_urls(
     3. 合併本地快取的官網、描述與國家。
     4. 送入既有網站爬取與分析流程。
     """
+
     if max_count <= 0:
         print(
             "[COSMOPROF NORTH AMERICA DISABLED] "
@@ -811,6 +1010,7 @@ def collect_cosmoprof_north_america_urls(
 
     return source_items
 
+
 def merge_exhibition_source_items(
     source_groups,
     max_count,
@@ -875,6 +1075,8 @@ def merge_exhibition_source_items(
                 return merged
 
     return merged
+
+
 def collect_exhibition_urls(
     config,
     exhibition_limit,
@@ -950,6 +1152,7 @@ def run_search_pipeline(
     google_limit, exhibition_limit = (
         get_search_limits(config)
     )
+
     # 展覽來源需要先準備較大的候選池。
     # exhibition_limit 代表最後要留下的合格筆數，
     # 不是前期只准取多少候選網址。
@@ -957,6 +1160,7 @@ def run_search_pipeline(
         exhibition_limit * 10,
         20,
     )
+
     google_urls = collect_google_urls(
         config=config,
         search_profile=search_profile,
@@ -980,11 +1184,24 @@ def run_search_pipeline(
         )
     )
 
+    bologna_exhibition_urls = (
+        collect_cosmoprof_bologna_urls(
+            search_profile=search_profile,
+            max_count=(
+                exhibition_candidate_limit
+            ),
+            resolve_official_website=(
+                config.resolve_bologna_official_websites
+            ),
+        )
+    )
+
     exhibition_urls = (
         merge_exhibition_source_items(
             source_groups=[
                 asia_exhibition_urls,
                 north_america_exhibition_urls,
+                bologna_exhibition_urls,
             ],
             max_count=(
                 exhibition_candidate_limit
@@ -997,8 +1214,11 @@ def run_search_pipeline(
         f"Asia {len(asia_exhibition_urls)} 筆，"
         "North America "
         f"{len(north_america_exhibition_urls)} 筆，"
+        "Bologna "
+        f"{len(bologna_exhibition_urls)} 筆，"
         f"合併後 {len(exhibition_urls)} 筆"
     )
+
     existing_domains = (
         load_recent_existing_domains(
             output_path=config.output_path,
@@ -1104,8 +1324,8 @@ def run_search_pipeline(
     )
 
     print(
-    "Official exhibition records: "
-    f"{len(exhibition_records)}"
-)
-    return export_summary
+        "Official exhibition records: "
+        f"{len(exhibition_records)}"
+    )
 
+    return export_summary
