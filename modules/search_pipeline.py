@@ -1,3 +1,7 @@
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    as_completed,
+)
 from datetime import datetime
 
 from modules.ai_analyzer import analyze_brand_page
@@ -41,6 +45,19 @@ EMPTY_TAIWAN_RESULT = {
     "台灣代理來源": "",
     "台灣檢查信心分數": "",
 }
+
+
+# 以下併發數為保守預設值，若 SerpAPI 方案允許更高併發，
+# 可以自行調高換取更快的搜尋速度。
+
+# Google 關鍵字搜尋（每組關鍵字互不相依）。
+GOOGLE_SEARCH_WORKERS = 5
+
+# Bologna 展商官網查詢（每家公司互不相依）。
+BOLOGNA_WEBSITE_LOOKUP_WORKERS = 5
+
+# 四個收集來源（Google／Asia／North America／Bologna）本身互不相依。
+COLLECTION_SOURCE_WORKERS = 4
 
 
 def build_exhibition_fallback_record(
@@ -154,6 +171,229 @@ def build_exhibition_fallback_record(
     }
 
 
+def build_single_record(
+    url,
+    source,
+    source_metadata,
+    index,
+    search_profile,
+    check_taiwan,
+    force_refresh_taiwan,
+    taiwan_cache_days,
+):
+    """
+    處理單一候選網址，回傳一筆紀錄或 None（略過）。
+
+    抽成獨立函式，讓呼叫端可以用 try/except
+    包住單一候選的處理，避免一個候選發生非預期錯誤
+    就讓整批結果消失。
+    """
+
+    is_bologna_exhibition_page = (
+        source_metadata
+        and "Bologna" in str(source)
+        and "cosmoprof.com" in str(url)
+    )
+
+    if is_bologna_exhibition_page:
+        print(
+            "[BOLOGNA FALLBACK RECORD] "
+            f"{source_metadata.get('展覽公司名稱', '')}"
+        )
+
+        return build_exhibition_fallback_record(
+            url=url,
+            source=source,
+            source_metadata=source_metadata,
+            index=index,
+            search_profile=search_profile,
+        )
+
+    page_text = fetch_website_text(url)
+
+    # 官網無法讀取時，優先使用官方展覽描述，
+    # 並繼續交給 website_classifier 判斷。
+    if not page_text:
+        exhibition_description = str(
+            source_metadata.get(
+                "展覽描述",
+                "",
+            )
+            or ""
+        ).strip()
+
+        if exhibition_description:
+            company_name = str(
+                source_metadata.get(
+                    "展覽公司名稱",
+                    "",
+                )
+                or ""
+            ).strip()
+
+            exhibition_category = str(
+                source_metadata.get(
+                    "展覽商品分類",
+                    "",
+                )
+                or ""
+            ).strip()
+
+            print(
+                "[USE EXHIBITION DESCRIPTION] "
+                f"{company_name}"
+            )
+
+            page_text = (
+                "Official exhibition company description:\n"
+                f"{exhibition_description}\n\n"
+                "Official exhibition company name:\n"
+                f"{company_name}\n\n"
+                "Official exhibition category:\n"
+                f"{exhibition_category}"
+            )
+
+        elif source_metadata:
+            print(
+                "[EXHIBITION FALLBACK RECORD - NO CONTENT] "
+                f"{source_metadata.get('展覽公司名稱', '')}"
+            )
+
+            return build_exhibition_fallback_record(
+                url=url,
+                source=source,
+                source_metadata=source_metadata,
+                index=index,
+                search_profile=search_profile,
+            )
+
+        else:
+            return None
+
+    classification = classify_website(
+        url=url,
+        page_text=page_text,
+        search_profile=search_profile,
+    )
+
+    print(
+        url,
+        classification,
+    )
+
+    if not classification.get(
+        "is_candidate"
+    ):
+        return None
+
+    record = analyze_brand_page(
+        url=url,
+        page_text=page_text,
+        index=index,
+        search_profile=search_profile,
+        source=source,
+    )
+
+    # 一般來源先使用 AI 判斷國家。
+    ai_country = classification.get(
+        "country",
+        "",
+    )
+
+    if ai_country:
+        record["國家"] = ai_country
+
+    # 官方展覽資料優先於網域推測與 AI 判斷。
+    if source_metadata:
+        record.update(
+            {
+                key: value
+                for key, value
+                in source_metadata.items()
+                if key != "展覽國家"
+            }
+        )
+
+        official_company_name = (
+            source_metadata.get(
+                "展覽公司名稱",
+                "",
+            )
+        )
+
+        if official_company_name:
+            record["公司名稱"] = (
+                official_company_name
+            )
+
+        official_country = (
+            source_metadata.get(
+                "展覽國家",
+                "",
+            )
+        )
+
+        if official_country:
+            record["國家"] = (
+                official_country
+            )
+
+    record["AI分類"] = (
+        classification.get(
+            "site_type",
+            "",
+        )
+    )
+
+    record["代理推薦分數"] = (
+        classification.get(
+            "agency_fit_score",
+            "",
+        )
+    )
+
+    record["AI判斷原因"] = (
+        classification.get(
+            "reason",
+            "",
+        )
+    )
+
+    record["是否適合代理"] = (
+        "是"
+        if classification.get(
+            "is_candidate"
+        )
+        else "否"
+    )
+
+    if check_taiwan:
+        taiwan_result = (
+            check_taiwan_distributor(
+                brand_name=record.get(
+                    "公司名稱",
+                    "",
+                ),
+                official_url=url,
+                force_refresh=(
+                    force_refresh_taiwan
+                ),
+                cache_expire_days=(
+                    taiwan_cache_days
+                ),
+            )
+        )
+
+        record.update(taiwan_result)
+
+    else:
+        record.update(
+            EMPTY_TAIWAN_RESULT
+        )
+
+    return record
+
+
 def build_records(
     urls_with_source,
     start_index,
@@ -176,6 +416,9 @@ def build_records(
 
     展覽：
         (url, source, source_metadata)
+
+    單一候選處理失敗（爬蟲、AI 分類等非預期錯誤）
+    只會略過該候選，不會讓整批結果消失。
     """
 
     records = []
@@ -221,205 +464,29 @@ def build_records(
             )
 
             continue
-        is_bologna_exhibition_page = (
-            source_metadata
-            and "Bologna" in str(source)
-            and "cosmoprof.com" in str(url)
-        )
 
-        if is_bologna_exhibition_page:
-            print(
-                "[BOLOGNA FALLBACK RECORD] "
-                f"{source_metadata.get('展覽公司名稱', '')}"
-            )
-
-            record = build_exhibition_fallback_record(
+        try:
+            record = build_single_record(
                 url=url,
                 source=source,
                 source_metadata=source_metadata,
                 index=start_index + len(records),
                 search_profile=search_profile,
+                check_taiwan=check_taiwan,
+                force_refresh_taiwan=force_refresh_taiwan,
+                taiwan_cache_days=taiwan_cache_days,
             )
 
+        except Exception as error:
+            print(
+                "[CANDIDATE PROCESSING ERROR] "
+                f"{url}: {error}"
+            )
+
+            continue
+
+        if record is not None:
             records.append(record)
-            continue
-        page_text = fetch_website_text(url)
-
-        # 官網無法讀取時，優先使用官方展覽描述，
-        # 並繼續交給 website_classifier 判斷。
-        if not page_text:
-            exhibition_description = str(
-                source_metadata.get(
-                    "展覽描述",
-                    "",
-                )
-                or ""
-            ).strip()
-
-            if exhibition_description:
-                company_name = str(
-                    source_metadata.get(
-                        "展覽公司名稱",
-                        "",
-                    )
-                    or ""
-                ).strip()
-
-                exhibition_category = str(
-                    source_metadata.get(
-                        "展覽商品分類",
-                        "",
-                    )
-                    or ""
-                ).strip()
-
-                print(
-                    "[USE EXHIBITION DESCRIPTION] "
-                    f"{company_name}"
-                )
-
-                page_text = (
-                    "Official exhibition company description:\n"
-                    f"{exhibition_description}\n\n"
-                    "Official exhibition company name:\n"
-                    f"{company_name}\n\n"
-                    "Official exhibition category:\n"
-                    f"{exhibition_category}"
-                )
-
-            elif source_metadata:
-                print(
-                    "[EXHIBITION SKIPPED - NO CONTENT] "
-                    f"{source_metadata.get('展覽公司名稱', '')}"
-                )
-
-                continue
-
-            else:
-                continue
-
-        classification = classify_website(
-            url=url,
-            page_text=page_text,
-            search_profile=search_profile,
-        )
-
-        print(
-            url,
-            classification,
-        )
-
-        if not classification.get(
-            "is_candidate"
-        ):
-            continue
-
-        record = analyze_brand_page(
-            url=url,
-            page_text=page_text,
-            index=start_index + len(records),
-            search_profile=search_profile,
-            source=source,
-        )
-
-        # 一般來源先使用 AI 判斷國家。
-        ai_country = classification.get(
-            "country",
-            "",
-        )
-
-        if ai_country:
-            record["國家"] = ai_country
-
-        # 官方展覽資料優先於網域推測與 AI 判斷。
-        if source_metadata:
-            record.update(
-                {
-                    key: value
-                    for key, value
-                    in source_metadata.items()
-                    if key != "展覽國家"
-                }
-            )
-
-            official_company_name = (
-                source_metadata.get(
-                    "展覽公司名稱",
-                    "",
-                )
-            )
-
-            if official_company_name:
-                record["公司名稱"] = (
-                    official_company_name
-                )
-
-            official_country = (
-                source_metadata.get(
-                    "展覽國家",
-                    "",
-                )
-            )
-
-            if official_country:
-                record["國家"] = (
-                    official_country
-                )
-
-        record["AI分類"] = (
-            classification.get(
-                "site_type",
-                "",
-            )
-        )
-
-        record["代理推薦分數"] = (
-            classification.get(
-                "agency_fit_score",
-                "",
-            )
-        )
-
-        record["AI判斷原因"] = (
-            classification.get(
-                "reason",
-                "",
-            )
-        )
-
-        record["是否適合代理"] = (
-            "是"
-            if classification.get(
-                "is_candidate"
-            )
-            else "否"
-        )
-
-        if check_taiwan:
-            taiwan_result = (
-                check_taiwan_distributor(
-                    brand_name=record.get(
-                        "公司名稱",
-                        "",
-                    ),
-                    official_url=url,
-                    force_refresh=(
-                        force_refresh_taiwan
-                    ),
-                    cache_expire_days=(
-                        taiwan_cache_days
-                    ),
-                )
-            )
-
-            record.update(taiwan_result)
-
-        else:
-            record.update(
-                EMPTY_TAIWAN_RESULT
-            )
-
-        records.append(record)
 
     if skipped_existing_count:
         print(
@@ -472,21 +539,44 @@ def collect_google_urls(
 
     google_urls = []
 
-    for keyword in keywords:
-        results = search_web(
-            keyword,
-            exclude_domains=(
-                config.exclude_domains
-            ),
-        )
+    with ThreadPoolExecutor(
+        max_workers=GOOGLE_SEARCH_WORKERS
+    ) as executor:
+        future_to_keyword = {
+            executor.submit(
+                search_web,
+                keyword,
+                exclude_domains=(
+                    config.exclude_domains
+                ),
+            ): keyword
+            for keyword in keywords
+        }
 
-        for url in results:
-            google_urls.append(
-                (
-                    url,
-                    "Google Search",
+        for future in as_completed(
+            future_to_keyword
+        ):
+            keyword = future_to_keyword[
+                future
+            ]
+
+            try:
+                results = future.result()
+
+            except Exception as error:
+                print(
+                    "[GOOGLE SEARCH ERROR] "
+                    f"{keyword}: {error}"
                 )
-            )
+                continue
+
+            for url in results:
+                google_urls.append(
+                    (
+                        url,
+                        "Google Search",
+                    )
+                )
 
     return dedupe_urls(google_urls)
 
@@ -636,9 +726,75 @@ def collect_cosmoprof_bologna_urls(
         f"{len(matched_exhibitors)} 筆"
     )
 
+    # Bologna 每家展商的 official_url 目前一定非空
+    # （沒有真官網時會 fallback 成 detail_url），
+    # 所以先截斷到 max_count 家，跟原本逐一計數 break
+    # 的結果完全一致，之後才平行查詢官網，
+    # 避免平行化多查超過原本需要的家數。
+    exhibitors_to_process = (
+        matched_exhibitors[:max_count]
+    )
+
+    resolved_websites = [
+        "" for _ in exhibitors_to_process
+    ]
+
+    if resolve_official_website:
+        with ThreadPoolExecutor(
+            max_workers=(
+                BOLOGNA_WEBSITE_LOOKUP_WORKERS
+            )
+        ) as executor:
+            future_to_index = {}
+
+            for index, exhibitor in enumerate(
+                exhibitors_to_process
+            ):
+                company_name = exhibitor.get(
+                    "company_name",
+                    "",
+                )
+
+                if not company_name:
+                    continue
+
+                future = executor.submit(
+                    resolve_bologna_official_website,
+                    company_name,
+                )
+
+                future_to_index[future] = index
+
+            for future in as_completed(
+                future_to_index
+            ):
+                index = future_to_index[future]
+
+                try:
+                    resolved_websites[index] = (
+                        future.result()
+                    )
+
+                except Exception as error:
+                    company_name = (
+                        exhibitors_to_process[
+                            index
+                        ].get(
+                            "company_name",
+                            "",
+                        )
+                    )
+
+                    print(
+                        "[BOLOGNA WEBSITE LOOKUP ERROR] "
+                        f"{company_name}: {error}"
+                    )
+
     source_items = []
 
-    for exhibitor in matched_exhibitors:
+    for index, exhibitor in enumerate(
+        exhibitors_to_process
+    ):
         official_url = exhibitor.get(
             "official_url",
             "",
@@ -647,26 +803,9 @@ def collect_cosmoprof_bologna_urls(
         if not official_url:
             continue
 
-        company_name = exhibitor.get(
-            "company_name",
-            "",
-        )
-
-        found_website = ""
-
-        if resolve_official_website and company_name:
-            try:
-                found_website = (
-                    resolve_bologna_official_website(
-                        company_name
-                    )
-                )
-
-            except Exception as error:
-                print(
-                    "[BOLOGNA WEBSITE LOOKUP ERROR] "
-                    f"{company_name}: {error}"
-                )
+        found_website = resolved_websites[
+            index
+        ]
 
         if found_website:
             official_url = found_website
@@ -748,9 +887,6 @@ def collect_cosmoprof_bologna_urls(
                 metadata,
             )
         )
-
-        if len(source_items) >= max_count:
-            break
 
     print(
         "[COSMOPROF BOLOGNA URLS] "
@@ -1161,31 +1297,35 @@ def run_search_pipeline(
         20,
     )
 
-    google_urls = collect_google_urls(
-        config=config,
-        search_profile=search_profile,
-    )
+    # 四個收集來源互不相依，平行執行以節省時間，
+    # 而不是依序一個接一個等待。
+    with ThreadPoolExecutor(
+        max_workers=COLLECTION_SOURCE_WORKERS
+    ) as executor:
+        google_future = executor.submit(
+            collect_google_urls,
+            config=config,
+            search_profile=search_profile,
+        )
 
-    asia_exhibition_urls = (
-        collect_cosmoprof_asia_urls(
+        asia_future = executor.submit(
+            collect_cosmoprof_asia_urls,
             search_profile=search_profile,
             max_count=(
                 exhibition_candidate_limit
             ),
         )
-    )
 
-    north_america_exhibition_urls = (
-        collect_cosmoprof_north_america_urls(
+        north_america_future = executor.submit(
+            collect_cosmoprof_north_america_urls,
             search_profile=search_profile,
             max_count=(
                 exhibition_candidate_limit
             ),
         )
-    )
 
-    bologna_exhibition_urls = (
-        collect_cosmoprof_bologna_urls(
+        bologna_future = executor.submit(
+            collect_cosmoprof_bologna_urls,
             search_profile=search_profile,
             max_count=(
                 exhibition_candidate_limit
@@ -1194,7 +1334,17 @@ def run_search_pipeline(
                 config.resolve_bologna_official_websites
             ),
         )
-    )
+
+        google_urls = google_future.result()
+        asia_exhibition_urls = (
+            asia_future.result()
+        )
+        north_america_exhibition_urls = (
+            north_america_future.result()
+        )
+        bologna_exhibition_urls = (
+            bologna_future.result()
+        )
 
     exhibition_urls = (
         merge_exhibition_source_items(
@@ -1257,6 +1407,23 @@ def run_search_pipeline(
         ),
     )
 
+    # Google 端結果先立即存檔，
+    # 避免展覽端分析途中出狀況時，
+    # 前面已經跑完的結果整批消失。
+    google_export_summary = (
+        export_vendor_records(
+            records=google_records,
+            output_path=config.output_path,
+            incremental=True,
+        )
+    )
+
+    print(
+        "[INCREMENTAL SAVE] "
+        f"Google 搜尋結果已先儲存："
+        f"{len(google_records)} 筆"
+    )
+
     exhibition_records = build_records(
         urls_with_source=exhibition_urls,
         start_index=(
@@ -1282,16 +1449,39 @@ def run_search_pipeline(
         ),
     )
 
+    exhibition_export_summary = (
+        export_vendor_records(
+            records=exhibition_records,
+            output_path=config.output_path,
+            incremental=True,
+        )
+    )
+
     records = (
         google_records
         + exhibition_records
     )
 
-    export_summary = export_vendor_records(
-        records=records,
-        output_path=config.output_path,
-        incremental=True,
-    )
+    export_summary = {
+        "本次找到": len(records),
+        "新增品牌": (
+            google_export_summary["新增品牌"]
+            + exhibition_export_summary[
+                "新增品牌"
+            ]
+        ),
+        "更新品牌": (
+            google_export_summary["更新品牌"]
+            + exhibition_export_summary[
+                "更新品牌"
+            ]
+        ),
+        "資料庫總數": (
+            exhibition_export_summary[
+                "資料庫總數"
+            ]
+        ),
+    }
 
     print(
         f"Done. Exported records to "

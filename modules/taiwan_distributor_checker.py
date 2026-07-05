@@ -1,5 +1,6 @@
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import requests
@@ -30,6 +31,53 @@ def build_taiwan_queries(brand_name: str) -> list[str]:
     ]
 
 
+def run_single_taiwan_query(
+    query: str,
+    api_key: str,
+    results_per_query: int,
+) -> list[dict[str, str]]:
+    params = {
+        "engine": "google",
+        "q": query,
+        "api_key": api_key,
+        "num": results_per_query,
+        "hl": "zh-tw",
+        "gl": "tw",
+    }
+
+    try:
+        response = requests.get(
+            SERPAPI_URL,
+            params=params,
+            timeout=30,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    except requests.RequestException as exc:
+        print(f"[Taiwan checker search failed] {query}: {exc}")
+        return []
+
+    results = []
+
+    for item in data.get("organic_results", []):
+        url = item.get("link", "").strip()
+
+        if not url:
+            continue
+
+        results.append(
+            {
+                "query": query,
+                "title": item.get("title", "").strip(),
+                "snippet": item.get("snippet", "").strip(),
+                "url": url,
+            }
+        )
+
+    return results
+
+
 def search_taiwan_distributor(
     brand_name: str,
     results_per_query: int = 5,
@@ -37,6 +85,7 @@ def search_taiwan_distributor(
     """
     使用 SerpAPI 搜尋品牌在台灣的代理、進口與銷售資訊。
 
+    3 組查詢互不相依，平行送出以節省時間。
     回傳每筆搜尋結果的標題、摘要及原始網址。
     """
     api_key = os.getenv("SEARCH_API_KEY")
@@ -44,48 +93,32 @@ def search_taiwan_distributor(
     if not api_key:
         raise RuntimeError("Missing SEARCH_API_KEY")
 
+    queries = build_taiwan_queries(brand_name)
+
     collected_results: list[dict[str, str]] = []
     seen_urls: set[str] = set()
 
-    for query in build_taiwan_queries(brand_name):
-        params = {
-            "engine": "google",
-            "q": query,
-            "api_key": api_key,
-            "num": results_per_query,
-            "hl": "zh-tw",
-            "gl": "tw",
-        }
+    with ThreadPoolExecutor(
+        max_workers=len(queries)
+    ) as executor:
+        query_results = executor.map(
+            lambda query: run_single_taiwan_query(
+                query,
+                api_key,
+                results_per_query,
+            ),
+            queries,
+        )
 
-        try:
-            response = requests.get(
-                SERPAPI_URL,
-                params=params,
-                timeout=30,
-            )
-            response.raise_for_status()
-            data = response.json()
+        for results in query_results:
+            for item in results:
+                url = item["url"]
 
-        except requests.RequestException as exc:
-            print(f"[Taiwan checker search failed] {brand_name}: {exc}")
-            continue
+                if url in seen_urls:
+                    continue
 
-        for item in data.get("organic_results", []):
-            url = item.get("link", "").strip()
-
-            if not url or url in seen_urls:
-                continue
-
-            seen_urls.add(url)
-
-            collected_results.append(
-                {
-                    "query": query,
-                    "title": item.get("title", "").strip(),
-                    "snippet": item.get("snippet", "").strip(),
-                    "url": url,
-                }
-            )
+                seen_urls.add(url)
+                collected_results.append(item)
 
     return collected_results
 

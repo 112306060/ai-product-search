@@ -1,6 +1,14 @@
 from modules.search_profile import SearchProfile
 
 
+# 使用者輸入越寬鬆（更多商品詞/定位詞/地區），
+# 組合出的關鍵字數量會等比例暴增，進而讓 SerpAPI
+# 用量失控。這裡設一個安全上限，優先保留使用者
+# 明確輸入的基本組合，超出上限才犧牲自動生成的
+# brand/professional/distributor 變化版本。
+MAX_KEYWORDS = 60
+
+
 def build_search_locations(
     profile: SearchProfile,
 ) -> list[str]:
@@ -93,11 +101,25 @@ def generate_keywords(
                 if keyword and keyword not in keywords:
                     keywords.append(keyword)
 
+    if len(keywords) > MAX_KEYWORDS:
+        print(
+            "[KEYWORD LIMIT] "
+            f"基本關鍵字組合達 {len(keywords)} 組，"
+            f"超過上限 {MAX_KEYWORDS}，"
+            f"只保留前 {MAX_KEYWORDS} 組"
+        )
+
+        return keywords[:MAX_KEYWORDS]
+
     # 補充品牌與專業通路搜尋版本，
-    # 但仍然完全根據使用者商品條件生成。
+    # 但仍然完全根據使用者商品條件生成，
+    # 且不會讓總數超過 MAX_KEYWORDS。
     base_keywords = list(keywords)
 
     for keyword in base_keywords:
+        if len(keywords) >= MAX_KEYWORDS:
+            break
+
         variants = [
             f"{keyword} brand",
             f"{keyword} professional",
@@ -105,6 +127,9 @@ def generate_keywords(
         ]
 
         for variant in variants:
+            if len(keywords) >= MAX_KEYWORDS:
+                break
+
             if variant not in keywords:
                 keywords.append(variant)
 

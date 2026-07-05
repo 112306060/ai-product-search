@@ -14,6 +14,12 @@ client = OpenAI(
 )
 
 
+# OpenAI 偶發逾時/限流時重試幾次，
+# 持續失敗才放棄這個候選，避免整次搜尋因單一次
+# API 呼叫失敗而完全中斷。
+CLASSIFY_MAX_RETRIES = 2
+
+
 def format_list(values: list[str]) -> str:
     cleaned = [
         str(value).strip()
@@ -138,25 +144,57 @@ Return ONLY valid JSON using this structure:
 }}
 """
 
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You classify websites for international "
-                    "brand distribution opportunities. "
-                    "Follow the user's dynamic search conditions. "
-                    "Return only valid JSON."
-                ),
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            },
-        ],
-        temperature=0,
-    )
+    response = None
+    last_error = None
+
+    for attempt in range(1, CLASSIFY_MAX_RETRIES + 1):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You classify websites for international "
+                            "brand distribution opportunities. "
+                            "Follow the user's dynamic search conditions. "
+                            "Return only valid JSON."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
+                temperature=0,
+            )
+
+            break
+
+        except Exception as error:
+            last_error = error
+
+            print(
+                "[CLASSIFY WEBSITE ERROR] "
+                f"第 {attempt}/{CLASSIFY_MAX_RETRIES} "
+                f"次失敗 {url}: {error}"
+            )
+
+    if response is None:
+        # OpenAI 持續失敗時，把這個候選當作「無法判斷」
+        # 略過，而不是讓整個搜尋流程崩潰、前面的結果全部消失。
+        return {
+            "is_candidate": False,
+            "site_type": "classification_error",
+            "agency_fit_score": 0,
+            "country": "",
+            "matched_products": [],
+            "matched_positioning": [],
+            "reason": (
+                "AI 分類呼叫持續失敗，"
+                f"已略過此候選：{last_error}"
+            ),
+        }
 
     content = (
         response
