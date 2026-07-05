@@ -21,6 +21,13 @@ class SearchConfig:
     # 是否改用公司名稱查詢 Google 找出真正官網
     # （找到才會走一般爬取與 AI 分析流程）。
     resolve_bologna_official_websites: bool = True
+
+    # 執行前是否印出預估用量（API 次數、費用、耗時）。
+    show_cost_estimate: bool = True
+
+    # 開啟後，看到預估用量會先詢問是否繼續
+    # （CLI 互動用；自動化/測試腳本應保持 False）。
+    require_run_confirmation: bool = False
     # 是否跳過近期已分析的品牌
     skip_existing_brands: bool = True
 

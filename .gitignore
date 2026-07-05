@@ -26,6 +26,7 @@ data/~$*.xlsx
 
 # 執行時產生的快取
 data/cache/
+data/coverage/
 api_probe.txt
 asia_api_result.txt
 data/cosmoprof_asia_preview.json

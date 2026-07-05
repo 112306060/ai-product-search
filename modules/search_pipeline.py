@@ -36,6 +36,14 @@ from modules.exhibitions.cpna_dynamic_search import (
 from modules.exhibitions.cosmoprof_bologna_website_finder import (
     resolve_official_website as resolve_bologna_official_website,
 )
+from modules.search_cost_estimator import (
+    estimate_search_cost,
+    format_cost_estimate,
+)
+from modules.coverage_tracker import (
+    record_run as record_coverage_run,
+    summarize_coverage,
+)
 
 
 EMPTY_TAIWAN_RESULT = {
@@ -1285,6 +1293,47 @@ def run_search_pipeline(
         定位、國家與地區條件。
     """
 
+    if config.show_cost_estimate:
+        try:
+            estimate = estimate_search_cost(
+                config,
+                search_profile,
+            )
+
+            print(
+                format_cost_estimate(
+                    estimate
+                )
+            )
+
+        except Exception as error:
+            print(
+                "[COST ESTIMATE FAILED] "
+                f"{error}"
+            )
+
+        if config.require_run_confirmation:
+            answer = input(
+                "是否繼續執行搜尋？(y/N): "
+            ).strip().lower()
+
+            if answer not in (
+                "y",
+                "yes",
+            ):
+                print(
+                    "[CANCELLED] "
+                    "使用者取消本次搜尋"
+                )
+
+                return {
+                    "本次找到": 0,
+                    "新增品牌": 0,
+                    "更新品牌": 0,
+                    "資料庫總數": 0,
+                    "cancelled": True,
+                }
+
     google_limit, exhibition_limit = (
         get_search_limits(config)
     )
@@ -1517,5 +1566,31 @@ def run_search_pipeline(
         "Official exhibition records: "
         f"{len(exhibition_records)}"
     )
+
+    try:
+        coverage_history = (
+            record_coverage_run(
+                profile=search_profile,
+                new_count=(
+                    export_summary["新增品牌"]
+                ),
+                total_count=(
+                    export_summary["資料庫總數"]
+                ),
+            )
+        )
+
+        print()
+        print(
+            summarize_coverage(
+                coverage_history
+            )
+        )
+
+    except Exception as error:
+        print(
+            "[COVERAGE TRACKING FAILED] "
+            f"{error}"
+        )
 
     return export_summary
