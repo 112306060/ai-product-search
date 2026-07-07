@@ -14,7 +14,15 @@ from modules.excel_exporter import (
 from modules.exhibition_search import (
     search_exhibition_sources,
 )
-from modules.keyword_generator import generate_keywords
+from modules.keyword_generator import (
+    MAX_KEYWORDS,
+    PER_LANGUAGE_KEYWORD_BUDGET,
+    generate_keywords,
+    generate_keywords_for_language,
+)
+from modules.language_resolver import (
+    resolve_search_languages,
+)
 from modules.search_engine import search_web
 from modules.taiwan_distributor_checker import (
     check_taiwan_distributor,
@@ -61,6 +69,11 @@ EMPTY_TAIWAN_RESULT = {
 
 # Google 關鍵字搜尋（每組關鍵字互不相依）。
 GOOGLE_SEARCH_WORKERS = 5
+
+# 一種語言搜尋完後，平均每組關鍵字要挖到至少幾家
+# 「先前沒看過」的新候選，才算這個語言還有搜索價值；
+# 低於這個門檻視為飽和，該換下一個權重的語言。
+SATURATION_MIN_YIELD_PER_KEYWORD = 1.0
 
 # Bologna 展商官網查詢（每家公司互不相依）。
 BOLOGNA_WEBSITE_LOOKUP_WORKERS = 5
@@ -507,46 +520,17 @@ def build_records(
     return records
 
 
-def collect_google_urls(
-    config,
-    search_profile,
+def search_keywords_in_parallel(
+    keywords,
+    exclude_domains,
 ):
     """
-    依照使用者本次的 SearchProfile，
-    動態產生 Google 搜尋關鍵字。
-
-    不再直接使用：
-    config.product
-    config.region
+    平行查詢一批關鍵字，回傳 (url, source) 清單
+    以及這批關鍵字總共貢獻了幾個先前沒看過的網域
+    （由呼叫端傳入 seen_domains 集合並就地更新）。
     """
 
-    keywords = generate_keywords(
-        search_profile,
-        languages=config.languages,
-    )
-
-    print(
-        "[SEARCH PROFILE] "
-        f"{search_profile.query}"
-    )
-
-    print(
-        "[GENERATED KEYWORDS] "
-        f"共 {len(keywords)} 組"
-    )
-
-    for keyword in keywords:
-        print(f"  - {keyword}")
-
-    if config.test_mode:
-        keywords = keywords[:2]
-
-        print(
-            "[TEST MODE] "
-            "只執行前 2 組一般搜尋關鍵字"
-        )
-
-    google_urls = []
+    urls_with_source = []
 
     with ThreadPoolExecutor(
         max_workers=GOOGLE_SEARCH_WORKERS
@@ -556,7 +540,7 @@ def collect_google_urls(
                 search_web,
                 keyword,
                 exclude_domains=(
-                    config.exclude_domains
+                    exclude_domains
                 ),
             ): keyword
             for keyword in keywords
@@ -580,12 +564,229 @@ def collect_google_urls(
                 continue
 
             for url in results:
-                google_urls.append(
+                urls_with_source.append(
                     (
                         url,
                         "Google Search",
                     )
                 )
+
+    return urls_with_source
+
+
+def collect_google_urls(
+    config,
+    search_profile,
+):
+    """
+    依照使用者本次的 SearchProfile，
+    動態決定搜尋語言並產生 Google 搜尋關鍵字。
+
+    不再直接使用：
+    config.product
+    config.region
+    config.languages（固定語言清單，已由動態語言解析取代）
+
+    測試模式維持原本行為（只用英文、只取前 2 組），
+    正式模式改成依國家/地區動態解析出的語言優先順序，
+    一次搜一種語言，依該語言的實際成效（每組關鍵字
+    平均挖到幾家新候選）決定要不要繼續換下一種語言，
+    而不是一開始就固定用幾種語言。
+    """
+
+    print(
+        "[SEARCH PROFILE] "
+        f"{search_profile.query}"
+    )
+
+    if config.test_mode:
+        keywords = generate_keywords(
+            search_profile,
+            languages=config.languages,
+        )[:2]
+
+        print(
+            "[TEST MODE] "
+            "只執行前 2 組英文關鍵字"
+        )
+
+        google_urls = (
+            search_keywords_in_parallel(
+                keywords,
+                config.exclude_domains,
+            )
+        )
+
+        return dedupe_urls(google_urls)
+
+    languages = (
+        resolve_search_languages(
+            search_profile
+        )
+    )
+
+    print(
+        "[SEARCH LANGUAGES] "
+        f"依搜尋條件解析出優先順序：{languages}"
+    )
+
+    google_urls = []
+    seen_domains = set()
+    keywords_used_total = 0
+
+    for language_index, language in (
+        enumerate(languages)
+    ):
+        remaining_budget = (
+            MAX_KEYWORDS
+            - keywords_used_total
+        )
+
+        if remaining_budget <= 0:
+            print(
+                "[KEYWORD LIMIT] "
+                "已用完全部關鍵字名額，"
+                "停止擴張語言"
+            )
+            break
+
+        if (
+            language == "english"
+            and len(languages) == 1
+        ):
+            # 只解析出英文（例如只選英美加）時，
+            # 不用省名額給其他語言，直接用完整版本
+            # （含 brand/professional/distributor）。
+            language_keywords = (
+                generate_keywords(
+                    search_profile,
+                    languages=(
+                        config.languages
+                    ),
+                )[:remaining_budget]
+            )
+
+        else:
+            language_keywords = (
+                generate_keywords_for_language(
+                    search_profile,
+                    language,
+                    max_count=min(
+                        PER_LANGUAGE_KEYWORD_BUDGET,
+                        remaining_budget,
+                    ),
+                )
+            )
+
+        if not language_keywords:
+            continue
+
+        print(
+            "[LANGUAGE SEARCH] "
+            f"目前使用語言：{language}"
+            f"（{len(language_keywords)} "
+            "組關鍵字）"
+        )
+
+        language_results = (
+            search_keywords_in_parallel(
+                language_keywords,
+                config.exclude_domains,
+            )
+        )
+
+        new_domains_this_language = 0
+
+        for (
+            url,
+            source,
+        ) in language_results:
+            domain = get_main_domain(url)
+
+            if (
+                domain
+                and domain
+                not in seen_domains
+            ):
+                seen_domains.add(domain)
+                new_domains_this_language += 1
+
+            google_urls.append(
+                (url, source)
+            )
+
+        keywords_used_total += len(
+            language_keywords
+        )
+
+        yield_rate = (
+            new_domains_this_language
+            / len(language_keywords)
+        )
+
+        is_low_yield = (
+            yield_rate
+            < SATURATION_MIN_YIELD_PER_KEYWORD
+        )
+
+        print(
+            "[LANGUAGE RESULT] "
+            f"{language} 貢獻 "
+            f"{new_domains_this_language} "
+            "家新候選（用了 "
+            f"{len(language_keywords)} "
+            "組關鍵字，累計 "
+            f"{len(seen_domains)} 家）"
+            + (
+                "，判定飽和"
+                if is_low_yield
+                else ""
+            )
+        )
+
+        is_last_language = (
+            language_index
+            == len(languages) - 1
+        )
+
+        should_continue = (
+            not is_last_language
+            and keywords_used_total
+            < MAX_KEYWORDS
+        )
+
+        if (
+            should_continue
+            and config.require_language_switch_confirmation
+        ):
+            next_language = languages[
+                language_index + 1
+            ]
+
+            status = (
+                "已飽和"
+                if is_low_yield
+                else "仍有成效"
+            )
+
+            answer = input(
+                f"[語言切換確認] {language} "
+                f"搜尋{status}，目前累計 "
+                f"{len(seen_domains)} "
+                "家候選。是否切換至 "
+                f"{next_language} "
+                "繼續搜尋？(y/N): "
+            ).strip().lower()
+
+            if answer not in (
+                "y",
+                "yes",
+            ):
+                print(
+                    "[STOPPED] "
+                    "使用者選擇停止語言擴張"
+                )
+                break
 
     return dedupe_urls(google_urls)
 

@@ -1,3 +1,6 @@
+from modules.keyword_translator import (
+    translate_terms,
+)
 from modules.search_profile import SearchProfile
 
 
@@ -7,6 +10,11 @@ from modules.search_profile import SearchProfile
 # 明確輸入的基本組合，超出上限才犧牲自動生成的
 # brand/professional/distributor 變化版本。
 MAX_KEYWORDS = 60
+
+# 每種語言分到的關鍵字名額。因為要留名額給多語言
+# 輪流搜尋，非英文語言先不加 brand/professional/
+# distributor 這類尾綴變化，只用商品×定位的基本組合。
+PER_LANGUAGE_KEYWORD_BUDGET = 12
 
 
 def build_search_locations(
@@ -132,5 +140,113 @@ def generate_keywords(
 
             if variant not in keywords:
                 keywords.append(variant)
+
+    return keywords
+
+
+def generate_keywords_for_language(
+    profile: SearchProfile,
+    language: str,
+    max_count: int = (
+        PER_LANGUAGE_KEYWORD_BUDGET
+    ),
+) -> list[str]:
+    """
+    針對單一語言，把商品/定位詞翻譯後
+    組合出關鍵字，供多語言分批搜尋使用。
+
+    跟 generate_keywords() 不同：
+    - 商品/定位詞會先翻譯成目標語言
+      （English 不用翻譯，直接用原文）
+    - 不加 brand/professional/distributor
+      尾綴變化，把名額留給更多語言
+    - 有獨立的 max_count 上限，
+      由呼叫端依剩餘關鍵字預算決定
+    """
+
+    product_keywords = [
+        str(keyword).strip()
+        for keyword in profile.product_keywords
+        if str(keyword).strip()
+    ]
+
+    positioning_keywords = [
+        str(keyword).strip()
+        for keyword in profile.positioning_keywords
+        if str(keyword).strip()
+    ]
+
+    locations = build_search_locations(
+        profile
+    )
+
+    if not product_keywords:
+        product_keywords = [
+            profile.query.strip()
+        ]
+
+    translated_products = (
+        translate_terms(
+            product_keywords,
+            language,
+        )
+    )
+
+    translated_positioning = (
+        translate_terms(
+            positioning_keywords,
+            language,
+        )
+        if positioning_keywords
+        else []
+    )
+
+    positioning_options = (
+        translated_positioning
+        if translated_positioning
+        else [""]
+    )
+
+    location_options = (
+        locations
+        if locations
+        else [""]
+    )
+
+    keywords = []
+
+    for product in translated_products:
+        for positioning in (
+            positioning_options
+        ):
+            for location in (
+                location_options
+            ):
+                parts = [
+                    positioning,
+                    product,
+                    location,
+                ]
+
+                keyword = " ".join(
+                    part
+                    for part in parts
+                    if part
+                ).strip()
+
+                if (
+                    keyword
+                    and keyword
+                    not in keywords
+                ):
+                    keywords.append(
+                        keyword
+                    )
+
+                if (
+                    len(keywords)
+                    >= max_count
+                ):
+                    return keywords
 
     return keywords

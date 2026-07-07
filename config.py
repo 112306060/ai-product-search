@@ -28,6 +28,11 @@ class SearchConfig:
     # 開啟後，看到預估用量會先詢問是否繼續
     # （CLI 互動用；自動化/測試腳本應保持 False）。
     require_run_confirmation: bool = False
+
+    # 開啟後，Google 搜尋每換一種語言前會先詢問是否繼續
+    # （CLI 互動用；自動化/測試腳本應保持 False，
+    # 讓語言擴張依飽和度自動進行，不中斷）。
+    require_language_switch_confirmation: bool = False
     # 是否跳過近期已分析的品牌
     skip_existing_brands: bool = True
 
