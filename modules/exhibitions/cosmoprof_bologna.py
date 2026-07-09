@@ -103,18 +103,17 @@ def normalize_exhibitor(raw: dict) -> dict:
 
     description_parts = []
 
-    if product_category:
-        description_parts.append(
-            "Official Bologna categories: "
-            + product_category
-        )
-
-    if exhibiting_area:
-        description_parts.append(
-            "Exhibiting area: "
-            + exhibiting_area
-        )
-
+    # 分類清單本身已經另外放在 product_category
+    # 欄位（給商品/定位比對用），這裡刻意不重複塞入
+    # description，避免一家公司只要「同時掛在」某個
+    # 排除分類底下（例如兼做包材/指甲），就讓 description
+    # 也帶有那個詞，導致排除詞判斷誤判整家排除。
+    #
+    # exhibiting_area 同樣刻意不放進 description：
+    # 這是展區/場館名稱（例如「COSMO HAIR & NAIL &
+    # BEAUTY SALON」把美髮、美甲、美容沙龍歸在同一展區），
+    # 不是這家公司自己的產品描述，同一展區裡的公司可能
+    # 產品完全不同，放進 description 只會誤導排除詞判斷。
     if sector:
         description_parts.append(
             "Sector: "

@@ -13,19 +13,28 @@ SEARCHABLE_FIELDS = [
 ]
 
 
-def build_searchable_text(
+# 排除詞判斷刻意不看 product_category：
+# 這個欄位常常是一家公司「同時掛在好幾個分類底下」的
+# 大雜燴（例如同時做洗護髮又兼做包材/指甲），如果用同一段
+# 文字判斷排除詞，一家主力做洗護髮的公司只要剛好也掛了
+# 一個 nail/packaging 分類，就會被整家誤判排除。
+# 排除詞判斷只看公司名稱與描述等「代表這家公司主要身分」
+# 的欄位，product_category 則保留給商品/定位比對使用
+# （那邊本來就希望比對範圍越廣越好）。
+EXCLUSION_CHECK_FIELDS = [
+    field_name
+    for field_name in SEARCHABLE_FIELDS
+    if field_name != "product_category"
+]
+
+
+def build_text_from_fields(
     candidate: dict,
+    field_names: list[str],
 ) -> str:
-    """
-    將不同來源的候選資料合併成可搜尋文字。
-
-    展覽名錄、Google 搜尋結果與其他來源，
-    都可以共用這個篩選器。
-    """
-
     values = []
 
-    for field_name in SEARCHABLE_FIELDS:
+    for field_name in field_names:
         value = candidate.get(
             field_name,
             "",
@@ -35,6 +44,37 @@ def build_searchable_text(
             values.append(str(value))
 
     return " ".join(values).lower()
+
+
+def build_searchable_text(
+    candidate: dict,
+) -> str:
+    """
+    將不同來源的候選資料合併成可搜尋文字，
+    用於商品/定位詞比對。
+
+    展覽名錄、Google 搜尋結果與其他來源，
+    都可以共用這個篩選器。
+    """
+
+    return build_text_from_fields(
+        candidate,
+        SEARCHABLE_FIELDS,
+    )
+
+
+def build_exclusion_check_text(
+    candidate: dict,
+) -> str:
+    """
+    專門給排除詞判斷用的較窄文字，
+    不包含 product_category 這種多重分類標籤欄位。
+    """
+
+    return build_text_from_fields(
+        candidate,
+        EXCLUSION_CHECK_FIELDS,
+    )
 
 
 def contains_any(
@@ -97,6 +137,12 @@ def get_candidate_filter_result(
         candidate
     )
 
+    exclusion_check_text = (
+        build_exclusion_check_text(
+            candidate
+        )
+    )
+
     official_url = str(
         candidate.get(
             "official_url",
@@ -147,7 +193,7 @@ def get_candidate_filter_result(
 
     matched_excluded_keywords = (
         find_matched_keywords(
-            searchable_text,
+            exclusion_check_text,
             excluded_keywords,
         )
     )
