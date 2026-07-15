@@ -751,6 +751,97 @@ def get_api_business_area_ids(
     return selected
 
 
+def get_api_country_ids(
+    country_names: list[str],
+    metadata_path: str | Path = (
+        DEFAULT_METADATA_PATH
+    ),
+) -> list[int]:
+    """
+    把使用者指定的國家名稱，轉成 CPNA 官方 API
+    篩選用的國家 ID（payload["country"]）。
+
+    官方名錄清單本身不會回傳每家展商的國家
+    （摘要 API 該欄位固定是空字串），但篩選 API
+    支援直接用官方國家 ID 限縮查詢範圍，
+    這裡改用這個方式，而不是查詢後才篩選一個
+    永遠是空字串的欄位。
+
+    找不到符合的國家名稱時回傳空清單，
+    呼叫端應視為「不限制國家」，不要整批排除。
+    """
+
+    from modules.search_profile import (
+        normalize_country_value,
+    )
+
+    if not country_names:
+        return []
+
+    metadata = load_metadata(
+        metadata_path
+    )
+
+    raw_countries = (
+        metadata.get("countries") or []
+    )
+
+    id_by_normalized_name: dict[
+        str, int
+    ] = {}
+
+    for item in raw_countries:
+        if not isinstance(item, dict):
+            continue
+
+        country_id = item.get("id")
+        country_name = str(
+            item.get("name") or ""
+        ).strip()
+
+        if (
+            country_id is None
+            or not country_name
+        ):
+            continue
+
+        normalized_name = (
+            normalize_country_value(
+                country_name
+            )
+        )
+
+        id_by_normalized_name[
+            normalized_name
+        ] = int(country_id)
+
+    matched_ids = []
+
+    for name in country_names:
+        normalized_name = (
+            normalize_country_value(
+                name
+            )
+        )
+
+        country_id = (
+            id_by_normalized_name.get(
+                normalized_name
+            )
+        )
+
+        if (
+            country_id is not None
+            and country_id
+            not in matched_ids
+        ):
+            matched_ids.append(
+                country_id
+            )
+
+    return matched_ids
+
+
 def get_positioning_matches(
     query: str,
     metadata_path: str | Path = (

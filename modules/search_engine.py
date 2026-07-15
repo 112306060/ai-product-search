@@ -31,7 +31,11 @@ BLOCK_DOMAINS = [
     "momo.",
     "pchome.",
     "ebay.",
-    "ecco-verde.com",
+    # 用「結尾有點」的寫法（而非固定 .com），
+    # 才能同時擋掉同一個零售商的不同國別網域
+    # （例如 ecco-verde.ch / ecco-verde.it），
+    # 跟下面 notino. / lookfantastic. 等寫法一致。
+    "ecco-verde.",
     "notino.",
     "lookfantastic.",
     "sephora.",
@@ -43,6 +47,15 @@ BLOCK_DOMAINS = [
     "oldworlditalian.com",
     "tiktok.com",
     "hpra.ie",
+    # 以下為歐洲各語言市場常見的美妝零售/藥妝連鎖，
+    # 之前只涵蓋英語系（Sephora/Notino/Lookfantastic/
+    # Douglas），非英文搜尋結果容易混入這些雜訊。
+    "dm-drogeriemarkt.",  # 德國/奧地利/義大利藥妝連鎖
+    "rossmann.",  # 德國/中東歐大型藥妝連鎖
+    "flaconi.",  # 德國線上美妝零售
+    "nocibe.",  # 法國香水/美妝連鎖
+    "marionnaud.",  # 法國/歐洲多國香水專賣連鎖
+    "primor.",  # 西班牙/歐洲美妝零售連鎖
 ]
 
 
@@ -75,6 +88,7 @@ def search_web(
     query: str,
     exclude_domains: list[str],
     num_results: int = 10,
+    start: int = 0,
 ) -> list[str]:
     provider = os.getenv(
         "SEARCH_PROVIDER",
@@ -93,6 +107,7 @@ def search_web(
                 exclude_domains
             ),
             num_results=num_results,
+            start=start,
         )
 
     print(
@@ -106,9 +121,14 @@ def _search_serpapi(
     query: str,
     exclude_domains: list[str],
     num_results: int,
+    start: int = 0,
 ) -> list[str]:
     """
     執行 SerpAPI Google 搜尋。
+
+    start 用來翻頁（例如 start=10 拿第2頁、
+    start=20 拿第3頁），讓同一組關鍵字能挖得更深，
+    不會每次都只看第1頁。
 
     支援逾時重試。連續失敗時回傳空清單，
     避免單一 Google 搜尋中斷整個流程。
@@ -129,6 +149,9 @@ def _search_serpapi(
         "api_key": api_key,
         "num": num_results,
     }
+
+    if start:
+        params["start"] = start
 
     for attempt in range(
         1,
@@ -181,7 +204,7 @@ def _search_serpapi(
                     continue
 
                 cleaned_url = (
-                    normalize_to_homepage(
+                    normalize_search_result_url(
                         url
                     )
                 )
@@ -289,9 +312,22 @@ def _search_serpapi(
     return []
 
 
-def normalize_to_homepage(
+def normalize_search_result_url(
     url: str,
 ) -> str:
+    """
+    清理 Google 搜尋結果網址，只去掉查詢字串／片段
+    （通常是追蹤參數，例如 ?utm_source=...），
+    保留路徑本身。
+
+    Google 排到前面，通常是因為某個深層頁面
+    （例如 brand.com/products/organic-shampoo）
+    內容真的符合搜尋字，而不是首頁。之前會把網址
+    直接壓成首頁，導致後續爬蟲抓到的是首頁的品牌
+    形象文案，不是 Google 當初判斷相關的那個頁面，
+    可能讓 AI 誤判拒絕本來該通過的候選。
+    """
+
     parsed = urlparse(url)
 
     if (
@@ -304,7 +340,7 @@ def normalize_to_homepage(
         (
             parsed.scheme,
             parsed.netloc,
-            "",
+            parsed.path,
             "",
             "",
             "",

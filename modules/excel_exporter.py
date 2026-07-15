@@ -1,12 +1,259 @@
+import io
 from pathlib import Path
 
 from datetime import datetime, timedelta
 import pandas as pd
-from modules.url_utils import get_main_domain
+from openpyxl import load_workbook
+from openpyxl.styles import Alignment
+from openpyxl.utils import get_column_letter
+from modules.url_utils import get_brand_key
+
+
+# 內容通常很長的欄位，固定給較寬的欄寬並自動換行，
+# 不要用「配合最長內容」的方式撐爆整欄。
+LONG_TEXT_COLUMN_WIDTH = 50
+LONG_TEXT_COLUMNS = {
+    "AI判斷原因",
+    "商品內容",
+    "評論",
+    "台灣代理證據",
+    "展覽商品分類",
+    "連絡人資料",
+    "後續連絡情況",
+}
+
+# 內容通常很短、固定格式的欄位，給窄一點的欄寬。
+NARROW_COLUMN_WIDTHS = {
+    "編號": 8,
+    "記錄日期": 12,
+    "搜尋名稱": 20,
+    "資料來源": 14,
+    "AI分類": 12,
+    "是否適合代理": 12,
+    "代理推薦分數": 12,
+    "台灣代理狀態": 14,
+    "台灣檢查信心分數": 14,
+    "展覽年份": 10,
+}
+
+MIN_COLUMN_WIDTH = 10
+MAX_AUTO_COLUMN_WIDTH = 30
+
+# 部分欄位內容可能非常長（例如展覽官方名錄的完整分類標籤，
+# 未過濾的話可能高達數百字），自動換行後會把整列撐得異常高，
+# 這裡限制每列最多顯示的行數，超出的部分仍保留在儲存格內，
+# 使用者可以手動放大該列或點開儲存格查看完整內容。
+DEFAULT_LINE_HEIGHT_POINTS = 15
+MAX_WRAPPED_LINES = 8
+
+
+def set_worksheet_column_widths(
+    worksheet,
+    dataframe: pd.DataFrame,
+) -> None:
+    """
+    依欄位內容調整合理欄寬，避免用預設固定寬度
+    導致長文字被截斷、短欄位又太寬不好閱讀。
+
+    共用邏輯，供「寫入既有 Excel 檔案」與
+    「匯出成記憶體中的 Excel 內容」共同呼叫。
+    """
+
+    wrap_alignment = Alignment(
+        wrap_text=True,
+        vertical="top",
+    )
+
+    for column_index, column_name in enumerate(
+        dataframe.columns,
+        start=1,
+    ):
+        column_letter = get_column_letter(
+            column_index
+        )
+
+        if column_name in LONG_TEXT_COLUMNS:
+            worksheet.column_dimensions[
+                column_letter
+            ].width = LONG_TEXT_COLUMN_WIDTH
+
+            for cell in worksheet[column_letter][
+                1:
+            ]:
+                cell.alignment = wrap_alignment
+
+            continue
+
+        if column_name in NARROW_COLUMN_WIDTHS:
+            worksheet.column_dimensions[
+                column_letter
+            ].width = NARROW_COLUMN_WIDTHS[
+                column_name
+            ]
+
+            continue
+
+        longest_value_length = max(
+            [
+                len(str(column_name))
+            ]
+            + [
+                len(str(value))
+                for value in dataframe[
+                    column_name
+                ]
+                if value not in ("", None)
+            ]
+        )
+
+        worksheet.column_dimensions[
+            column_letter
+        ].width = min(
+            max(
+                longest_value_length + 2,
+                MIN_COLUMN_WIDTH,
+            ),
+            MAX_AUTO_COLUMN_WIDTH,
+        )
+
+    cap_wrapped_row_heights(
+        worksheet,
+        dataframe,
+    )
+
+
+def cap_wrapped_row_heights(
+    worksheet,
+    dataframe: pd.DataFrame,
+) -> None:
+    """
+    限制自動換行欄位撐出的列高上限。
+
+    列高本來會依最長的換行欄位自動決定，
+    但像展覽官方名錄的分類標籤這類欄位內容
+    可能長達數百字，換算下來會有十幾行，
+    導致單一列異常地高、蓋掉版面。
+    這裡估算每列需要幾行，並限制在
+    MAX_WRAPPED_LINES 以內，內容仍完整保留在
+    儲存格裡，只是預設顯示不會全部展開。
+    """
+
+    long_text_column_letters = [
+        get_column_letter(
+            dataframe.columns.get_loc(column_name)
+            + 1
+        )
+        for column_name in LONG_TEXT_COLUMNS
+        if column_name in dataframe.columns
+    ]
+
+    if not long_text_column_letters:
+        return
+
+    for row_index in range(
+        2,
+        worksheet.max_row + 1,
+    ):
+        max_lines = 1
+
+        for column_letter in long_text_column_letters:
+            value = worksheet[
+                f"{column_letter}{row_index}"
+            ].value
+
+            if not value:
+                continue
+
+            column_width = (
+                worksheet.column_dimensions[
+                    column_letter
+                ].width
+                or LONG_TEXT_COLUMN_WIDTH
+            )
+
+            estimated_lines = -(
+                -len(str(value))
+                // max(
+                    int(column_width),
+                    1,
+                )
+            )
+
+            max_lines = max(
+                max_lines,
+                estimated_lines,
+            )
+
+        capped_lines = min(
+            max_lines,
+            MAX_WRAPPED_LINES,
+        )
+
+        worksheet.row_dimensions[
+            row_index
+        ].height = (
+            capped_lines
+            * DEFAULT_LINE_HEIGHT_POINTS
+        )
+
+
+def apply_column_widths(
+    output_path: str,
+    dataframe: pd.DataFrame,
+    sheet_name: str = "總表",
+) -> None:
+    """
+    依欄位內容調整既有 Excel 檔案的欄寬，直接存回原檔案。
+    """
+
+    workbook = load_workbook(output_path)
+    worksheet = workbook[sheet_name]
+
+    set_worksheet_column_widths(
+        worksheet,
+        dataframe,
+    )
+
+    workbook.save(output_path)
+
+
+def export_dataframe_to_excel_bytes(
+    dataframe: pd.DataFrame,
+    sheet_name: str = "篩選結果",
+) -> bytes:
+    """
+    把 DataFrame 匯出成 Excel 內容（bytes），
+    欄寬套用跟主資料庫一樣的自動調整邏輯，
+    供 Streamlit 下載按鈕直接使用，不需要先寫入磁碟。
+    """
+
+    raw_buffer = io.BytesIO()
+
+    dataframe.to_excel(
+        raw_buffer,
+        index=False,
+        sheet_name=sheet_name,
+    )
+
+    raw_buffer.seek(0)
+
+    workbook = load_workbook(raw_buffer)
+    worksheet = workbook[sheet_name]
+
+    set_worksheet_column_widths(
+        worksheet,
+        dataframe,
+    )
+
+    output_buffer = io.BytesIO()
+    workbook.save(output_buffer)
+
+    return output_buffer.getvalue()
 
 
 COLUMNS = [
     "記錄日期",
+    "搜尋名稱",
     "編號",
     "公司名稱",
     "網站",
@@ -70,7 +317,7 @@ def make_brand_key(record: dict) -> str:
     website = record.get("網站", "")
     source_url = record.get("來源連結", "")
 
-    domain = get_main_domain(website) or get_main_domain(source_url)
+    domain = get_brand_key(website) or get_brand_key(source_url)
 
     if domain:
         return f"domain:{domain}"
@@ -182,8 +429,8 @@ def load_recent_existing_domains(
         source_url = record.get("來源連結", "")
 
         domain = (
-            get_main_domain(website)
-            or get_main_domain(source_url)
+            get_brand_key(website)
+            or get_brand_key(source_url)
         )
 
         if not domain:
@@ -318,6 +565,18 @@ def export_vendor_records(
         index=False,
         sheet_name="總表",
     )
+
+    try:
+        apply_column_widths(
+            output_path,
+            dataframe,
+        )
+
+    except Exception as error:
+        print(
+            "[COLUMN WIDTH ADJUST FAILED] "
+            f"{error}"
+        )
 
     summary = {
         "本次找到": len(records),

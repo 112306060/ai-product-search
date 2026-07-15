@@ -142,6 +142,50 @@ REGION_COUNTRIES: dict[str, set[str]] = {
 }
 
 
+# 使用者輸入國家時，常會用跟展覽官方名錄不同的
+# 常見寫法（例如「South Korea」），但名錄的國家欄位
+# 通常只固定用其中一種寫法（例如「Korea」），單純字面
+# 比對會因為寫法不同就完全比對不到、篩出 0 家。
+# 這裡把常見的替代寫法統一轉成名錄實際使用的寫法，
+# 使用者輸入跟名錄資料都要經過這層正規化才能正確比對。
+COUNTRY_ALIASES: dict[str, str] = {
+    "south korea": "korea",
+    "republic of korea": "korea",
+    "korea, republic of": "korea",
+    "korea republic of": "korea",
+    "usa": "united states",
+    "us": "united states",
+    "america": "united states",
+    "united states of america": (
+        "united states"
+    ),
+    "uk": "united kingdom",
+    "great britain": "united kingdom",
+    "britain": "united kingdom",
+    "czech republic": "czechia",
+    "hong kong,s.a.r.,china": (
+        "hong kong"
+    ),
+    "hong kong sar": "hong kong",
+    "taiwan,china": "taiwan",
+    "taiwan, china": "taiwan",
+    "chinese taipei": "taiwan",
+}
+
+
+def normalize_country_value(
+    value: str,
+) -> str:
+    normalized = (
+        str(value or "").strip().lower()
+    )
+
+    return COUNTRY_ALIASES.get(
+        normalized,
+        normalized,
+    )
+
+
 @dataclass
 class SearchProfile:
     """
@@ -199,15 +243,27 @@ class SearchProfile:
     allow_unknown_country: bool = True
 
     def normalized_product_keywords(self) -> list[str]:
-        return normalize_values(
-            self.product_keywords
+        from modules.keyword_translator import (
+            expand_with_synonyms,
+        )
+
+        return expand_with_synonyms(
+            normalize_values(
+                self.product_keywords
+            )
         )
 
     def normalized_positioning_keywords(
         self,
     ) -> list[str]:
-        return normalize_values(
-            self.positioning_keywords
+        from modules.keyword_translator import (
+            expand_with_synonyms,
+        )
+
+        return expand_with_synonyms(
+            normalize_values(
+                self.positioning_keywords
+            )
         )
 
     def normalized_excluded_keywords(
@@ -220,16 +276,22 @@ class SearchProfile:
     def normalized_included_countries(
         self,
     ) -> list[str]:
-        return normalize_values(
-            self.included_countries
-        )
+        return [
+            normalize_country_value(country)
+            for country in normalize_values(
+                self.included_countries
+            )
+        ]
 
     def normalized_excluded_countries(
         self,
     ) -> list[str]:
-        return normalize_values(
-            self.excluded_countries
-        )
+        return [
+            normalize_country_value(country)
+            for country in normalize_values(
+                self.excluded_countries
+            )
+        ]
 
     def normalized_included_regions(
         self,
@@ -240,18 +302,27 @@ class SearchProfile:
 
     def resolved_included_countries(self) -> set[str]:
         """
-        合併使用者直接指定的國家，以及地區展開後的國家。
+        決定本次搜尋實際套用的國家範圍。
 
-        例如：
-        included_countries=["Italy"]
-        included_regions=["Europe"]
+        使用者明確指定「只包含以下國家」時，
+        代表要精準限縮，這裡就只用那些國家，
+        不再疊加地區選單展開的國家——不然選了
+        地區（例如 Asia）又填了單一國家（例如 Japan），
+        會被誤解成「還是要搜整個 Asia」，
+        跟「只包含」字面的意思不符，也會讓語言/關鍵字
+        數量不必要地暴增。
 
-        最後會得到 Europe 國家集合加上 Italy。
+        只有在完全沒有指定國家時，才使用地區展開的國家。
         """
 
-        countries = set(
+        included_countries = set(
             self.normalized_included_countries()
         )
+
+        if included_countries:
+            return included_countries
+
+        countries = set()
 
         for region in self.normalized_included_regions():
             region_countries = REGION_COUNTRIES.get(

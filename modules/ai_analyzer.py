@@ -111,6 +111,9 @@ def analyze_brand_page(
         "記錄日期": datetime.now().strftime(
             "%Y%m%d"
         ),
+        "搜尋名稱": (
+            search_profile.query or ""
+        ).strip(),
         "編號": index,
         "公司名稱": company_name,
         "網站": url,

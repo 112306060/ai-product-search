@@ -17,6 +17,13 @@ class SearchConfig:
     force_refresh_taiwan: bool = False
     taiwan_cache_days: int = 7
 
+    # 資料來源開關：使用者可以只搜 Google、
+    # 只搜三大展覽官方名錄（Asia／North America／Bologna），
+    # 或兩者都要。關閉的來源完全不會送出查詢，
+    # 不會產生任何相關 API 用量。
+    enable_google_search: bool = True
+    enable_exhibition_search: bool = True
+
     # Bologna 官方名錄沒有公開展商官網，
     # 是否改用公司名稱查詢 Google 找出真正官網
     # （找到才會走一般爬取與 AI 分析流程）。
@@ -33,6 +40,14 @@ class SearchConfig:
     # （CLI 互動用；自動化/測試腳本應保持 False，
     # 讓語言擴張依飽和度自動進行，不中斷）。
     require_language_switch_confirmation: bool = False
+
+    # 預設關閉：Google 搜尋每組關鍵字只拿第1頁（前10筆）。
+    # 開啟後每組關鍵字最多會翻到 max_pages_per_keyword 頁，
+    # 挖得更深，但會等比例增加 SerpAPI 查詢次數
+    # （以及連帶的台灣代理查證次數），是額外的加購功能，
+    # 不是現有成本估算的一部分，需要另外評估預算再開啟。
+    enable_deep_pagination: bool = False
+    max_pages_per_keyword: int = 3
     # 是否跳過近期已分析的品牌
     skip_existing_brands: bool = True
 

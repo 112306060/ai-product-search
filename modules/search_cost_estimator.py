@@ -23,7 +23,13 @@ from modules.exhibitions.cosmoprof_bologna import (
 from modules.exhibitions.cpna_dynamic_search import (
     search_cpna_candidates,
 )
-from modules.keyword_generator import generate_keywords
+from modules.keyword_generator import (
+    MAX_KEYWORDS,
+    generate_keywords,
+)
+from modules.language_resolver import (
+    resolve_search_languages,
+)
 
 
 # 以下經驗值來自本次開發過程中的實測數據。
@@ -90,12 +96,46 @@ def estimate_search_cost(
         )
     )
 
-    keywords = generate_keywords(
-        search_profile,
-        languages=config.languages,
+    languages = resolve_search_languages(
+        search_profile
     )
 
-    google_keyword_count = len(keywords)
+    if not config.enable_google_search:
+        # 使用者這次關閉了 Google 搜尋來源，
+        # 不會產生任何相關關鍵字／SerpAPI 用量。
+        google_keyword_count = 0
+
+    elif config.test_mode:
+        # 跟 collect_google_urls() 的實際行為一致：
+        # 測試模式只取前 2 組英文關鍵字，
+        # 不會依語言飽和度擴張到 MAX_KEYWORDS。
+        keywords = generate_keywords(
+            search_profile,
+            languages=config.languages,
+        )
+
+        google_keyword_count = min(
+            len(keywords),
+            2,
+        )
+
+    elif len(languages) > 1:
+        # 正式模式會分語言批次搜尋，依飽和度決定
+        # 要不要換下一語言。實測對「有機天然洗護髮／
+        # 歐洲」這類條件，5 種語言都沒有飽和，會一路
+        # 用到 MAX_KEYWORDS 上限，這裡直接用上限估算
+        # （較保守／偏高，但符合目前實測到的真實行為）。
+        google_keyword_count = MAX_KEYWORDS
+
+    else:
+        keywords = generate_keywords(
+            search_profile,
+            languages=config.languages,
+        )
+
+        google_keyword_count = len(
+            keywords
+        )
 
     asia_matched_count = 0
     north_america_matched_count = 0
@@ -103,16 +143,28 @@ def estimate_search_cost(
 
     live_fetch_error = ""
 
-    if fetch_live_exhibitor_counts:
+    if (
+        fetch_live_exhibitor_counts
+        and config.enable_exhibition_search
+    ):
         try:
             asia_exhibitors = (
                 get_all_asia_exhibitors()
             )
 
+            # 跟 pipeline 實際行為一致：Asia 定位詞判斷
+            # 交給後續 AI 分析，這裡只用商品詞篩選。
+            asia_filter_profile = (
+                dataclasses.replace(
+                    search_profile,
+                    require_positioning_match=False,
+                )
+            )
+
             asia_matched_count = len(
                 filter_candidates(
                     asia_exhibitors,
-                    search_profile,
+                    asia_filter_profile,
                 )
             )
 
@@ -134,6 +186,9 @@ def estimate_search_cost(
                 max_records=(
                     exhibition_candidate_limit
                 ),
+                included_countries=list(
+                    search_profile.normalized_included_countries()
+                ),
             )
 
             north_america_matched_count = len(
@@ -149,6 +204,8 @@ def estimate_search_cost(
     try:
         bologna_exhibitors = (
             get_all_bologna_exhibitors()
+            if config.enable_exhibition_search
+            else []
         )
 
         # Bologna 的定位詞判斷交給後續 AI 分析

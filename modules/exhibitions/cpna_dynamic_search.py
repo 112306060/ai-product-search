@@ -1,5 +1,6 @@
 from modules.exhibitions.cpna_category_matcher import (
     get_api_business_area_ids,
+    get_api_country_ids,
     get_positioning_matches,
 )
 from modules.exhibitions.cosmoprof_north_america import (
@@ -121,14 +122,24 @@ def search_cpna_candidates(
     query: str,
     *,
     max_records: int | None = None,
+    included_countries: (
+        list[str] | None
+    ) = None,
 ) -> dict:
     """
     依照使用者需求：
 
     1. 動態匹配官方分類 ID。
-    2. 呼叫 CPNA 官方 API。
-    3. 合併本地快取中的官網、描述與國家。
-    4. 回傳候選，供後續 OpenAI 分析。
+    2. （若有指定國家）動態匹配官方國家 ID。
+    3. 呼叫 CPNA 官方 API（直接用官方國家篩選，
+       而不是查完才篩一個永遠是空字串的國家欄位）。
+    4. 合併本地快取中的官網、描述與國家。
+    5. 回傳候選，供後續 OpenAI 分析。
+
+    included_countries 對不到任何官方國家 ID 時
+    （例如打錯字，或這次展覽根本沒有該國家的篩選選項），
+    視為不限制國家，不會整批排除——避免因為國家名稱
+    對不上，就誤以為「這個國家在北美展完全沒有候選」。
     """
     business_area_ids = (
         get_api_business_area_ids(
@@ -154,9 +165,18 @@ def search_cpna_candidates(
         )
     )
 
+    country_ids = (
+        get_api_country_ids(
+            included_countries
+        )
+        if included_countries
+        else []
+    )
+
     official_candidates = (
         get_filtered_exhibitor_summaries(
             hall_code="",
+            country_ids=country_ids,
             business_area_ids=(
                 business_area_ids
             ),

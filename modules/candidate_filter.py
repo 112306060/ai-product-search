@@ -1,4 +1,7 @@
-from modules.search_profile import SearchProfile
+from modules.search_profile import (
+    SearchProfile,
+    normalize_country_value,
+)
 
 
 SEARCHABLE_FIELDS = [
@@ -113,7 +116,7 @@ def find_matched_keywords(
 def normalize_country(
     country: str,
 ) -> str:
-    return str(country).strip().lower()
+    return normalize_country_value(country)
 
 
 def get_candidate_filter_result(

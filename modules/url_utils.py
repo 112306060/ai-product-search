@@ -69,25 +69,60 @@ def get_main_domain(url: str) -> str:
     return ".".join(parts[-2:])
 
 
+def get_brand_key(url: str) -> str:
+    """
+    取得品牌識別用的核心名稱，忽略頂級網域（TLD），
+    讓同一品牌的不同國別網站被視為同一家公司。
+
+    例如：
+    paulmitchell.com -> paulmitchell
+    paulmitchell.it -> paulmitchell
+    paulmitchell.de -> paulmitchell
+
+    這是因為很多歐洲品牌會用不同國別網域經營同一品牌
+    （brand.de / brand.fr / brand.com），只看主網域
+    （含 TLD）會把它們誤判成不同公司。
+    """
+    main_domain = get_main_domain(url)
+
+    if not main_domain:
+        return ""
+
+    parts = main_domain.split(".")
+
+    if len(parts) <= 1:
+        return main_domain
+
+    last_two = ".".join(parts[-2:])
+
+    if (
+        last_two in COMMON_SECOND_LEVEL_DOMAINS
+        and len(parts) >= 3
+    ):
+        return parts[-3]
+
+    return parts[-2]
+
+
 def dedupe_urls(urls_with_source: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """
-    依主網域去除重複搜尋結果。
+    依品牌識別鍵去除重複搜尋結果（忽略頂級網域差異）。
 
-    同一品牌的不同頁面只保留第一筆。
+    同一品牌的不同頁面、不同國別網域只保留第一筆。
     """
-    seen_domains: set[str] = set()
+    seen_brands: set[str] = set()
     unique_urls: list[tuple[str, str]] = []
 
     for url, source in urls_with_source:
-        domain = get_main_domain(url)
+        brand_key = get_brand_key(url)
 
-        if not domain:
+        if not brand_key:
             continue
 
-        if domain in seen_domains:
+        if brand_key in seen_brands:
             continue
 
-        seen_domains.add(domain)
+        seen_brands.add(brand_key)
         unique_urls.append((url, source))
 
     return unique_urls

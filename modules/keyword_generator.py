@@ -25,6 +25,11 @@ def build_search_locations(
 
     優先使用使用者指定國家，
     其次使用地區；兩者皆未指定時不限制位置。
+
+    只要有指定國家，就只用國家，不會再疊加地區
+    （不然選了地區又填了單一國家，關鍵字會同時帶出
+    兩個地區詞，語言/關鍵字數量也會被地區展開撐大，
+    跟「只包含這些國家」的原意不符）。
     """
 
     locations = []
@@ -34,6 +39,9 @@ def build_search_locations(
 
         if cleaned and cleaned not in locations:
             locations.append(cleaned)
+
+    if locations:
+        return locations
 
     for region in profile.included_regions:
         cleaned = str(region).strip()

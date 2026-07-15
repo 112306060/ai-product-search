@@ -4,10 +4,17 @@ from urllib.parse import urlparse
 import requests
 
 
-sys.stdout.reconfigure(
-    encoding="utf-8",
-    errors="replace",
-)
+# 在某些環境（例如 Streamlit、或被 contextlib.redirect_stdout
+# 暫時替換成 StringIO 時）sys.stdout 不一定支援 reconfigure，
+# 這裡只是為了修正 Windows 主控台中文編碼，失敗就安靜跳過，
+# 不應該讓整個模組匯入失敗。
+try:
+    sys.stdout.reconfigure(
+        encoding="utf-8",
+        errors="replace",
+    )
+except AttributeError:
+    pass
 
 
 BASE_URL = "https://exhibitors.informamarkets-info.com"

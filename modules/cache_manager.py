@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 from datetime import datetime, timedelta
@@ -9,15 +10,33 @@ CACHE_DIR = Path("data/cache")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
+# Windows 路徑長度有上限，像涵蓋率追蹤這種把一長串
+# 關鍵字（含同義詞展開後）組成簽章字串的用法，
+# 清理後可能還是太長，超過上限會直接寫入失敗。
+MAX_CACHE_KEY_LENGTH = 100
+
+
 def make_cache_key(value: str) -> str:
     """
     將品牌名稱轉成安全的快取檔名。
+
+    清理後太長時會截斷並補上內容雜湊，
+    避免超出 Windows 路徑長度上限，
+    同時仍保留足夠的辨識度與唯一性。
     """
     cleaned = value.strip().lower()
     cleaned = re.sub(r"[^\w\u4e00-\u9fff-]+", "_", cleaned)
     cleaned = cleaned.strip("_")
 
-    return cleaned or "unknown"
+    if not cleaned:
+        return "unknown"
+
+    if len(cleaned) > MAX_CACHE_KEY_LENGTH:
+        digest = hashlib.sha1(cleaned.encode("utf-8")).hexdigest()[:10]
+        truncated_length = MAX_CACHE_KEY_LENGTH - len(digest) - 1
+        cleaned = cleaned[:truncated_length] + "_" + digest
+
+    return cleaned
 
 
 def get_cache_path(cache_type: str, cache_key: str) -> Path:

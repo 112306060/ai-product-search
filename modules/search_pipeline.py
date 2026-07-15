@@ -9,6 +9,7 @@ from modules.ai_analyzer import analyze_brand_page
 from modules.crawler import fetch_website_text
 from modules.excel_exporter import (
     export_vendor_records,
+    load_existing_records,
     load_recent_existing_domains,
 )
 from modules.exhibition_search import (
@@ -29,7 +30,7 @@ from modules.taiwan_distributor_checker import (
 )
 from modules.url_utils import (
     dedupe_urls,
-    get_main_domain,
+    get_brand_key,
 )
 from modules.website_classifier import classify_website
 from modules.candidate_filter import filter_candidates
@@ -75,11 +76,116 @@ GOOGLE_SEARCH_WORKERS = 5
 # 低於這個門檻視為飽和，該換下一個權重的語言。
 SATURATION_MIN_YIELD_PER_KEYWORD = 1.0
 
+# 語言擴張除了看「這個語言還挖不挖得到新候選」，
+# 也要看「累積候選數，相對於這次目標家數，是否已經
+# 夠寬（留給後續 AI 篩選的緩衝）」——不然目標家數設得
+# 很小（例如 1 家）時，就算每種語言都還有新候選，
+# 也會一路把所有語言、所有關鍵字名額用完，
+# 跟「只要 1 家」的本意不符。
+# 這裡刻意抓比較寬鬆的倍數／下限，是因為候選要通過
+# AI 判斷（品牌官網、符合定位、符合國家…）才會被接受，
+# 實際接受率常常遠低於平均值，池子太小容易變成 0 家。
+SEARCH_POOL_SAFETY_MULTIPLIER = 20
+SEARCH_POOL_MIN_FLOOR = 40
+
 # Bologna 展商官網查詢（每家公司互不相依）。
 BOLOGNA_WEBSITE_LOOKUP_WORKERS = 5
 
 # 四個收集來源（Google／Asia／North America／Bologna）本身互不相依。
 COLLECTION_SOURCE_WORKERS = 4
+
+
+def excel_record_to_candidate_dict(
+    record: dict,
+) -> dict:
+    """
+    把 Excel 裡已累積的一筆品牌紀錄，
+    轉成跟展覽候選同樣格式，讓 candidate_filter
+    可以用同一套商品／定位／國家比對邏輯，
+    反查「這次搜尋條件，資料庫裡已經有哪些現成符合的公司」。
+    """
+
+    description_parts = [
+        str(record.get("商品內容", "") or ""),
+        str(record.get("AI判斷原因", "") or ""),
+        str(record.get("評論", "") or ""),
+    ]
+
+    return {
+        "company_name": record.get(
+            "公司名稱",
+            "",
+        ),
+        "product_category": record.get(
+            "商品類別",
+            "",
+        ),
+        "product_content": record.get(
+            "商品內容",
+            "",
+        ),
+        "description": " ".join(
+            part
+            for part in description_parts
+            if part
+        ),
+        "official_url": (
+            record.get("網站", "")
+            or record.get("來源連結", "")
+        ),
+        "country": record.get(
+            "國家",
+            "",
+        ),
+        "_original_record": record,
+    }
+
+
+def match_existing_database_records(
+    search_profile,
+    output_path,
+):
+    """
+    用這次的搜尋條件，反查已累積的資料庫裡
+    有哪些現成符合的公司——資料庫本身會變成一個
+    「越用越划算」的第4個資料來源：不管當初是用
+    什麼關鍵字找到的，只要商品／定位／國家符合這次
+    條件，就不需要再花一次 Google／AI 查詢。
+
+    這些紀錄已經做過完整 AI 分析與台灣代理查證，
+    直接沿用既有結果，不重新處理。
+    """
+
+    existing_records = load_existing_records(
+        output_path
+    )
+
+    if not existing_records:
+        return []
+
+    candidate_dicts = [
+        excel_record_to_candidate_dict(record)
+        for record in existing_records
+    ]
+
+    matched = filter_candidates(
+        candidate_dicts,
+        search_profile,
+    )
+
+    matched_records = [
+        candidate["_original_record"]
+        for candidate in matched
+    ]
+
+    print(
+        "[EXISTING DATABASE MATCH] "
+        f"資料庫既有 {len(existing_records)} 筆中，"
+        f"符合這次搜尋條件 {len(matched_records)} 筆"
+        "（沿用既有分析結果，不重新查詢）"
+    )
+
+    return matched_records
 
 
 def build_exhibition_fallback_record(
@@ -139,6 +245,9 @@ def build_exhibition_fallback_record(
         "記錄日期": datetime.now().strftime(
             "%Y%m%d"
         ),
+        "搜尋名稱": (
+            search_profile.query or ""
+        ).strip(),
         "編號": index,
         "公司名稱": company_name,
         "網站": url,
@@ -427,6 +536,9 @@ def build_records(
     existing_domains=None,
     skip_existing_brands=True,
     force_refresh_brands=False,
+    stage_label="",
+    progress_callback=None,
+    cancel_check=None,
 ):
     """
     處理 Google 搜尋與展覽來源資料。
@@ -441,6 +553,14 @@ def build_records(
 
     單一候選處理失敗（爬蟲、AI 分類等非預期錯誤）
     只會略過該候選，不會讓整批結果消失。
+
+    progress_callback（選填）：
+        每處理一筆候選就呼叫一次，回報目前進度，
+        供前端顯示進度條使用。
+
+    cancel_check（選填）：
+        每筆候選處理前檢查一次，回傳 True 時立即停止，
+        已處理完的結果仍會保留、回傳給呼叫端。
     """
 
     records = []
@@ -451,9 +571,38 @@ def build_records(
 
     skipped_existing_count = 0
 
-    for source_item in urls_with_source:
+    total_candidates = len(
+        urls_with_source
+    )
+
+    for position, source_item in enumerate(
+        urls_with_source,
+        start=1,
+    ):
         if len(records) >= max_count:
             break
+
+        if (
+            cancel_check
+            and cancel_check()
+        ):
+            print(
+                "[CANCELLED] "
+                f"使用者中止搜尋（{stage_label}），"
+                f"已分析 {len(records)} 筆"
+            )
+
+            break
+
+        if progress_callback:
+            progress_callback(
+                {
+                    "stage": stage_label,
+                    "current": position,
+                    "total": total_candidates,
+                    "accepted": len(records),
+                }
+            )
 
         if len(source_item) == 3:
             (
@@ -469,7 +618,7 @@ def build_records(
 
             source_metadata = {}
 
-        domain = get_main_domain(url)
+        domain = get_brand_key(url)
 
         should_skip = (
             skip_existing_brands
@@ -520,9 +669,51 @@ def build_records(
     return records
 
 
+def search_keyword_with_pagination(
+    keyword,
+    exclude_domains,
+    enable_deep_pagination,
+    max_pages_per_keyword,
+):
+    """
+    查詢單一關鍵字，預設只拿第1頁（10筆）。
+
+    enable_deep_pagination 開啟時，同一組關鍵字最多會
+    翻到 max_pages_per_keyword 頁；只要某一頁 Google
+    已經沒有結果可回傳，就代表這組關鍵字挖完了，
+    直接停止，不會浪費查詢次數。
+    """
+
+    all_urls = []
+
+    pages_to_try = (
+        max_pages_per_keyword
+        if enable_deep_pagination
+        else 1
+    )
+
+    for page in range(1, pages_to_try + 1):
+        start = (page - 1) * 10
+
+        page_urls = search_web(
+            keyword,
+            exclude_domains=exclude_domains,
+            start=start,
+        )
+
+        if not page_urls:
+            break
+
+        all_urls.extend(page_urls)
+
+    return all_urls
+
+
 def search_keywords_in_parallel(
     keywords,
     exclude_domains,
+    enable_deep_pagination=False,
+    max_pages_per_keyword=3,
 ):
     """
     平行查詢一批關鍵字，回傳 (url, source) 清單
@@ -537,11 +728,11 @@ def search_keywords_in_parallel(
     ) as executor:
         future_to_keyword = {
             executor.submit(
-                search_web,
+                search_keyword_with_pagination,
                 keyword,
-                exclude_domains=(
-                    exclude_domains
-                ),
+                exclude_domains,
+                enable_deep_pagination,
+                max_pages_per_keyword,
             ): keyword
             for keyword in keywords
         }
@@ -614,6 +805,12 @@ def collect_google_urls(
             search_keywords_in_parallel(
                 keywords,
                 config.exclude_domains,
+                enable_deep_pagination=(
+                    config.enable_deep_pagination
+                ),
+                max_pages_per_keyword=(
+                    config.max_pages_per_keyword
+                ),
             )
         )
 
@@ -628,6 +825,23 @@ def collect_google_urls(
     print(
         "[SEARCH LANGUAGES] "
         f"依搜尋條件解析出優先順序：{languages}"
+    )
+
+    google_limit, _ = get_search_limits(
+        config
+    )
+
+    required_candidate_pool = max(
+        google_limit
+        * SEARCH_POOL_SAFETY_MULTIPLIER,
+        SEARCH_POOL_MIN_FLOOR,
+    )
+
+    print(
+        "[SEARCH POOL TARGET] "
+        f"目標家數 {google_limit}，"
+        f"預計累積約 {required_candidate_pool} "
+        "家候選即可停止擴張語言"
     )
 
     google_urls = []
@@ -692,6 +906,12 @@ def collect_google_urls(
             search_keywords_in_parallel(
                 language_keywords,
                 config.exclude_domains,
+                enable_deep_pagination=(
+                    config.enable_deep_pagination
+                ),
+                max_pages_per_keyword=(
+                    config.max_pages_per_keyword
+                ),
             )
         )
 
@@ -701,7 +921,7 @@ def collect_google_urls(
             url,
             source,
         ) in language_results:
-            domain = get_main_domain(url)
+            domain = get_brand_key(url)
 
             if (
                 domain
@@ -743,6 +963,22 @@ def collect_google_urls(
                 else ""
             )
         )
+
+        pool_is_sufficient = (
+            len(seen_domains)
+            >= required_candidate_pool
+        )
+
+        if pool_is_sufficient:
+            print(
+                "[POOL SUFFICIENT] "
+                f"已累積 {len(seen_domains)} "
+                "家候選，相對目標家數 "
+                f"{google_limit} 已足夠，"
+                "停止擴張語言"
+            )
+
+            break
 
         is_last_language = (
             language_index
@@ -809,15 +1045,27 @@ def collect_cosmoprof_asia_urls(
 
     exhibitors = get_all_exhibitors()
 
+    # Asia 的公司描述雖然是真實文案，但定位詞清單
+    # （organic/natural/vegan…）終究有限，公司可能用
+    # 其他說法描述定位（例如 eco-conscious、clean
+    # beauty），字面比對不到就會被誤刷掉。跟 Bologna
+    # 一樣，先只用商品詞篩選候選，定位判斷交給後面
+    # AI 讀取真實官網內容時再做，避免預篩階段誤傷。
+    asia_filter_profile = dataclasses.replace(
+        search_profile,
+        require_positioning_match=False,
+    )
+
     matched_exhibitors = filter_candidates(
         exhibitors,
-        search_profile,
+        asia_filter_profile,
     )
 
     print(
         "[COSMOPROF ASIA FILTER] "
         f"{len(exhibitors)} 筆中符合 "
         f"{len(matched_exhibitors)} 筆"
+        "（此來源定位詞判斷交由後續 AI 分析）"
     )
 
     source_items = []
@@ -1179,6 +1427,9 @@ def collect_cosmoprof_north_america_urls(
         result = search_cpna_candidates(
             query=query,
             max_records=None,
+            included_countries=list(
+                search_profile.normalized_included_countries()
+            ),
         )
 
     except Exception as error:
@@ -1410,7 +1661,7 @@ def merge_exhibition_source_items(
                 continue
 
             url = source_item[0]
-            domain = get_main_domain(url)
+            domain = get_brand_key(url)
 
             dedupe_key = (
                 domain
@@ -1496,6 +1747,8 @@ def get_search_limits(config):
 def run_search_pipeline(
     config,
     search_profile,
+    progress_callback=None,
+    cancel_check=None,
 ):
     """
     執行完整搜尋流程。
@@ -1507,7 +1760,49 @@ def run_search_pipeline(
     search_profile：
         使用者本次搜尋條件，例如商品、
         定位、國家與地區條件。
+
+    progress_callback（選填）：
+        接收 dict（stage/current/total/accepted），
+        供前端顯示即時進度。
+
+    cancel_check（選填）：
+        回傳 True 時中止搜尋。收集階段（Google 關鍵字
+        搜尋、展覽名錄比對）本身無法立即中斷，但一結束
+        就會檢查一次；逐一分析候選的階段（最花 API 額度）
+        則每筆之間都會檢查，可以在數秒內停止。
+        中止前已分析、已存檔的結果都會保留，不會浪費。
     """
+
+    def report_progress(stage):
+        if progress_callback:
+            progress_callback(
+                {
+                    "stage": stage,
+                    "current": 0,
+                    "total": 0,
+                    "accepted": 0,
+                }
+            )
+
+    def is_cancelled():
+        return bool(
+            cancel_check
+            and cancel_check()
+        )
+
+    def build_cancelled_summary(
+        records_found,
+        added,
+        updated,
+        total_in_database,
+    ):
+        return {
+            "本次找到": records_found,
+            "新增品牌": added,
+            "更新品牌": updated,
+            "資料庫總數": total_in_database,
+            "cancelled": True,
+        }
 
     if config.show_cost_estimate:
         try:
@@ -1525,6 +1820,18 @@ def run_search_pipeline(
         except Exception as error:
             print(
                 "[COST ESTIMATE FAILED] "
+                f"{error}"
+            )
+
+        try:
+            match_existing_database_records(
+                search_profile,
+                config.output_path,
+            )
+
+        except Exception as error:
+            print(
+                "[EXISTING DATABASE MATCH FAILED] "
                 f"{error}"
             )
 
@@ -1562,53 +1869,95 @@ def run_search_pipeline(
         20,
     )
 
+    report_progress(
+        "正在收集候選名單"
+        "（Google 搜尋 + 三大展覽名錄）..."
+    )
+
+    print(
+        "[SOURCE TOGGLE] "
+        f"Google 搜尋："
+        f"{'開啟' if config.enable_google_search else '關閉'}，"
+        "展覽名錄（Asia／North America／Bologna）："
+        f"{'開啟' if config.enable_exhibition_search else '關閉'}"
+    )
+
     # 四個收集來源互不相依，平行執行以節省時間，
     # 而不是依序一個接一個等待。
+    # 此階段本身無法立即中斷，結束後才會檢查是否已中止。
+    # 使用者可以透過 config 關閉 Google 或展覽名錄其中一種，
+    # 關閉的來源直接不送出查詢，不會產生任何 API 用量。
     with ThreadPoolExecutor(
         max_workers=COLLECTION_SOURCE_WORKERS
     ) as executor:
-        google_future = executor.submit(
-            collect_google_urls,
-            config=config,
-            search_profile=search_profile,
+        google_future = (
+            executor.submit(
+                collect_google_urls,
+                config=config,
+                search_profile=search_profile,
+            )
+            if config.enable_google_search
+            else None
         )
 
-        asia_future = executor.submit(
-            collect_cosmoprof_asia_urls,
-            search_profile=search_profile,
-            max_count=(
-                exhibition_candidate_limit
-            ),
+        asia_future = (
+            executor.submit(
+                collect_cosmoprof_asia_urls,
+                search_profile=search_profile,
+                max_count=(
+                    exhibition_candidate_limit
+                ),
+            )
+            if config.enable_exhibition_search
+            else None
         )
 
-        north_america_future = executor.submit(
-            collect_cosmoprof_north_america_urls,
-            search_profile=search_profile,
-            max_count=(
-                exhibition_candidate_limit
-            ),
+        north_america_future = (
+            executor.submit(
+                collect_cosmoprof_north_america_urls,
+                search_profile=search_profile,
+                max_count=(
+                    exhibition_candidate_limit
+                ),
+            )
+            if config.enable_exhibition_search
+            else None
         )
 
-        bologna_future = executor.submit(
-            collect_cosmoprof_bologna_urls,
-            search_profile=search_profile,
-            max_count=(
-                exhibition_candidate_limit
-            ),
-            resolve_official_website=(
-                config.resolve_bologna_official_websites
-            ),
+        bologna_future = (
+            executor.submit(
+                collect_cosmoprof_bologna_urls,
+                search_profile=search_profile,
+                max_count=(
+                    exhibition_candidate_limit
+                ),
+                resolve_official_website=(
+                    config.resolve_bologna_official_websites
+                ),
+            )
+            if config.enable_exhibition_search
+            else None
         )
 
-        google_urls = google_future.result()
+        google_urls = (
+            google_future.result()
+            if google_future
+            else []
+        )
         asia_exhibition_urls = (
             asia_future.result()
+            if asia_future
+            else []
         )
         north_america_exhibition_urls = (
             north_america_future.result()
+            if north_america_future
+            else []
         )
         bologna_exhibition_urls = (
             bologna_future.result()
+            if bologna_future
+            else []
         )
 
     exhibition_urls = (
@@ -1649,6 +1998,24 @@ def run_search_pipeline(
         "個近期已分析品牌"
     )
 
+    if is_cancelled():
+        print(
+            "[CANCELLED] "
+            "使用者中止搜尋（收集階段結束後、"
+            "尚未開始分析任何候選）"
+        )
+
+        return build_cancelled_summary(
+            records_found=0,
+            added=0,
+            updated=0,
+            total_in_database=len(
+                load_existing_records(
+                    config.output_path
+                )
+            ),
+        )
+
     google_records = build_records(
         urls_with_source=google_urls,
         start_index=1,
@@ -1670,6 +2037,9 @@ def run_search_pipeline(
         force_refresh_brands=(
             config.force_refresh_brands
         ),
+        stage_label="Google 搜尋候選",
+        progress_callback=progress_callback,
+        cancel_check=cancel_check,
     )
 
     # Google 端結果先立即存檔，
@@ -1688,6 +2058,30 @@ def run_search_pipeline(
         f"Google 搜尋結果已先儲存："
         f"{len(google_records)} 筆"
     )
+
+    if is_cancelled():
+        print(
+            "[CANCELLED] "
+            "使用者中止搜尋（Google 端已存檔，"
+            "尚未開始分析展覽名錄候選）"
+        )
+
+        return build_cancelled_summary(
+            records_found=len(
+                google_records
+            ),
+            added=google_export_summary[
+                "新增品牌"
+            ],
+            updated=google_export_summary[
+                "更新品牌"
+            ],
+            total_in_database=(
+                google_export_summary[
+                    "資料庫總數"
+                ]
+            ),
+        )
 
     exhibition_records = build_records(
         urls_with_source=exhibition_urls,
@@ -1712,6 +2106,9 @@ def run_search_pipeline(
         force_refresh_brands=(
             config.force_refresh_brands
         ),
+        stage_label="展覽名錄候選",
+        progress_callback=progress_callback,
+        cancel_check=cancel_check,
     )
 
     exhibition_export_summary = (
@@ -1747,6 +2144,21 @@ def run_search_pipeline(
             ]
         ),
     }
+
+    if is_cancelled():
+        # 展覽名錄分析途中被中止，
+        # 已處理完的部分仍已存檔（見上方 build_records
+        # 的 cancel_check），這裡只是把結果標記為中止，
+        # 讓前端知道這不是完整跑完的結果。
+        export_summary["cancelled"] = True
+
+        print(
+            "[CANCELLED] "
+            "使用者中止搜尋（展覽名錄分析階段），"
+            "已保留目前已分析結果"
+        )
+
+        return export_summary
 
     print(
         f"Done. Exported records to "
