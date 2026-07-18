@@ -65,6 +65,28 @@ EMPTY_TAIWAN_RESULT = {
 }
 
 
+def build_taiwan_check_failed_result(
+    error: Exception,
+) -> dict:
+    """
+    台灣代理查證本身出錯時（例如 API 故障）的 fallback 結果。
+
+    跟 EMPTY_TAIWAN_RESULT（使用者主動關閉查證）分開標示，
+    避免搞混「沒查」跟「查了但失敗」，方便事後篩選出需要
+    重新查證的候選。
+    """
+    return {
+        "台灣代理狀態": "查證失敗",
+        "台灣代理商名稱": "",
+        "台灣代理證據": (
+            "台灣代理查證時發生錯誤，其餘分析結果仍正常保留，"
+            f"可稍後手動查證或重新分析：{error}"
+        ),
+        "台灣代理來源": "",
+        "台灣檢查信心分數": "",
+    }
+
+
 # 以下併發數為保守預設值，若 SerpAPI 方案允許更高併發，
 # 可以自行調高換取更快的搜尋速度。
 
@@ -499,21 +521,38 @@ def build_single_record(
     )
 
     if check_taiwan:
-        taiwan_result = (
-            check_taiwan_distributor(
-                brand_name=record.get(
-                    "公司名稱",
-                    "",
-                ),
-                official_url=url,
-                force_refresh=(
-                    force_refresh_taiwan
-                ),
-                cache_expire_days=(
-                    taiwan_cache_days
-                ),
+        try:
+            taiwan_result = (
+                check_taiwan_distributor(
+                    brand_name=record.get(
+                        "公司名稱",
+                        "",
+                    ),
+                    official_url=url,
+                    force_refresh=(
+                        force_refresh_taiwan
+                    ),
+                    cache_expire_days=(
+                        taiwan_cache_days
+                    ),
+                )
             )
-        )
+
+        except Exception as error:
+            # 台灣代理查證失敗不該連累前面已經花錢做完的
+            # 爬蟲與 AI 分類結果——整筆候選仍然保留匯出，
+            # 只是台灣代理狀態標成「查證失敗」，需要的話
+            # 之後可以單獨重新查證。
+            print(
+                "[TAIWAN CHECK FAILED] "
+                f"{record.get('公司名稱', '')}: {error}"
+            )
+
+            taiwan_result = (
+                build_taiwan_check_failed_result(
+                    error
+                )
+            )
 
         record.update(taiwan_result)
 
@@ -2137,6 +2176,14 @@ def run_search_pipeline(
             + exhibition_export_summary[
                 "更新品牌"
             ]
+        ),
+        "鎖定跳過": (
+            google_export_summary.get(
+                "鎖定跳過", 0
+            )
+            + exhibition_export_summary.get(
+                "鎖定跳過", 0
+            )
         ),
         "資料庫總數": (
             exhibition_export_summary[

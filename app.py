@@ -7,10 +7,15 @@ AI 海外品牌搜尋系統 - Streamlit 前端。
 """
 
 import contextlib
+import dataclasses
+import hashlib
 import io
+import json
 import re
 import threading
 import time
+from datetime import datetime, timezone
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -55,6 +60,227 @@ SOURCE_OPTIONS = [
     SOURCE_OPTION_GOOGLE_ONLY,
     SOURCE_OPTION_EXHIBITION_ONLY,
 ]
+
+# 超過幾天沒同步就提醒使用者——展覽官方名錄不是即時抓取，
+# 而是本地快取檔，久了可能還停留在舊一屆的資料。
+EXHIBITION_STALE_DAYS = 30
+
+# 預估用量超過這裡任一項門檻，執行前必須額外勾選確認，
+# 避免手滑改錯設定（例如目標家數多打一個零）卻沒注意到，
+# 執行到一半才發現用量遠超預期。門檻是經驗值，
+# 可以依實際預算調整。
+COST_CONFIRMATION_SERPAPI_CALLS_THRESHOLD = 150
+COST_CONFIRMATION_USD_THRESHOLD = 1.0
+
+BOLOGNA_CATALOG_PATH = (
+    "data/exhibitions/cosmoprof_bologna_2026.json"
+)
+NORTH_AMERICA_METADATA_PATH = (
+    "data/exhibitions/"
+    "cosmoprof_north_america_2026_metadata.json"
+)
+
+
+def get_exhibition_source_freshness() -> list[dict]:
+    """
+    取得三大展覽來源各自的資料新鮮度。
+
+    Asia 是每次執行都即時打官方 API，沒有「過期」的問題；
+    Bologna／North America 是本地快取檔，需要人工執行對應的
+    sync 腳本才會更新，這裡回報快取檔的同步時間，
+    太久沒同步就提醒使用者。
+    """
+
+    now = datetime.now(timezone.utc)
+    sources = []
+
+    sources.append(
+        {
+            "name": "Cosmoprof Asia",
+            "is_live": True,
+            "synced_at": None,
+            "days_old": None,
+            "note": "每次執行都即時查詢官方 API，不需要同步",
+        }
+    )
+
+    bologna_path = Path(
+        BOLOGNA_CATALOG_PATH
+    )
+
+    if bologna_path.exists():
+        synced_at = datetime.fromtimestamp(
+            bologna_path.stat().st_mtime,
+            tz=timezone.utc,
+        )
+        days_old = (
+            now - synced_at
+        ).days
+
+        sources.append(
+            {
+                "name": (
+                    "Cosmoprof Worldwide Bologna"
+                ),
+                "is_live": False,
+                "synced_at": synced_at,
+                "days_old": days_old,
+                "note": (
+                    "本地快取檔，需執行 "
+                    "sync_bologna_catalog.py + "
+                    "update_bologna_details.py 更新"
+                ),
+            }
+        )
+
+    else:
+        sources.append(
+            {
+                "name": (
+                    "Cosmoprof Worldwide Bologna"
+                ),
+                "is_live": False,
+                "synced_at": None,
+                "days_old": None,
+                "note": "找不到本地快取檔，需先執行同步腳本",
+            }
+        )
+
+    north_america_path = Path(
+        NORTH_AMERICA_METADATA_PATH
+    )
+
+    if north_america_path.exists():
+        try:
+            metadata = json.loads(
+                north_america_path.read_text(
+                    encoding="utf-8"
+                )
+            )
+
+            synced_at_text = metadata.get(
+                "synced_at"
+            )
+
+            synced_at = (
+                datetime.fromisoformat(
+                    synced_at_text
+                )
+                if synced_at_text
+                else None
+            )
+
+            days_old = (
+                (now - synced_at).days
+                if synced_at
+                else None
+            )
+
+        except Exception:
+            synced_at = None
+            days_old = None
+
+        sources.append(
+            {
+                "name": (
+                    "Cosmoprof North America"
+                ),
+                "is_live": False,
+                "synced_at": synced_at,
+                "days_old": days_old,
+                "note": (
+                    "本地快取檔，需執行 "
+                    "sync_cpna_catalog.py 更新"
+                ),
+            }
+        )
+
+    else:
+        sources.append(
+            {
+                "name": (
+                    "Cosmoprof North America"
+                ),
+                "is_live": False,
+                "synced_at": None,
+                "days_old": None,
+                "note": "找不到本地快取檔，需先執行同步腳本",
+            }
+        )
+
+    return sources
+
+
+def render_exhibition_freshness() -> None:
+    freshness = (
+        get_exhibition_source_freshness()
+    )
+
+    lines = []
+    has_stale = False
+
+    for source in freshness:
+        if source["is_live"]:
+            lines.append(
+                f"- **{source['name']}**："
+                "即時查詢，一律最新"
+            )
+            continue
+
+        if source["synced_at"] is None:
+            lines.append(
+                f"- **{source['name']}**："
+                "⚠️ 找不到本地快取檔，"
+                f"{source['note']}"
+            )
+            has_stale = True
+            continue
+
+        days_old = source["days_old"]
+        synced_date_text = source[
+            "synced_at"
+        ].strftime("%Y-%m-%d")
+
+        is_stale = (
+            days_old
+            >= EXHIBITION_STALE_DAYS
+        )
+
+        if is_stale:
+            has_stale = True
+
+        warning_mark = (
+            "⚠️ " if is_stale else ""
+        )
+
+        lines.append(
+            f"- **{source['name']}**："
+            f"{warning_mark}上次同步 "
+            f"{synced_date_text}"
+            f"（{days_old} 天前）"
+        )
+
+    with st.expander(
+        "📅 展覽資料來源新鮮度"
+        + (
+            "（有來源已超過 "
+            f"{EXHIBITION_STALE_DAYS} 天沒同步）"
+            if has_stale
+            else ""
+        ),
+        expanded=has_stale,
+    ):
+        st.markdown(
+            "\n".join(lines)
+        )
+
+        st.caption(
+            "Bologna／North America 是本地快取檔，"
+            "不會自動更新，需要人工執行對應的 sync 腳本"
+            "（見專案根目錄 sync_bologna_catalog.py／"
+            "update_bologna_details.py／"
+            "sync_cpna_catalog.py）。"
+        )
 
 
 st.set_page_config(
@@ -179,6 +405,36 @@ def build_search_config() -> SearchConfig:
         require_language_switch_confirmation=False,
         output_path=OUTPUT_PATH,
     )
+
+
+def compute_run_fingerprint(
+    config: SearchConfig,
+    profile: SearchProfile,
+) -> str:
+    """
+    把這次執行會用到的所有設定做成一組指紋，
+    用來判斷「上次估算用量時的設定」是否還等於現在的設定。
+
+    只要使用者改了任何欄位（目標家數、地區、關鍵字……），
+    指紋就會跟著變，逼使用者重新按一次「估算用量」才能
+    開始搜尋，避免拿一份跟目前設定對不上的舊預估數字，
+    誤以為這次執行的用量跟預估的一樣。
+    """
+    payload = {
+        "config": dataclasses.asdict(config),
+        "profile": dataclasses.asdict(profile),
+    }
+
+    serialized = json.dumps(
+        payload,
+        sort_keys=True,
+        ensure_ascii=False,
+        default=str,
+    )
+
+    return hashlib.sha256(
+        serialized.encode("utf-8")
+    ).hexdigest()
 
 
 @st.cache_resource
@@ -453,6 +709,8 @@ def render_search_tab() -> None:
         horizontal=True,
     )
 
+    render_exhibition_freshness()
+
     col_a, col_b, col_c = st.columns(3)
 
     with col_a:
@@ -526,11 +784,19 @@ def render_search_tab() -> None:
                 st.session_state[
                     "last_estimate"
                 ] = estimate
+                st.session_state[
+                    "last_estimate_fingerprint"
+                ] = compute_run_fingerprint(
+                    config, profile
+                )
 
             except Exception as error:
                 st.error(f"估算失敗：{error}")
                 st.session_state[
                     "last_estimate"
+                ] = None
+                st.session_state[
+                    "last_estimate_fingerprint"
                 ] = None
 
             try:
@@ -586,16 +852,83 @@ def render_search_tab() -> None:
     if shared_state["running"]:
         st.info(
             "目前有一個搜尋正在背景執行中"
-            "（就算重新整理這個頁面也看得到、"
-            "也能按停止——不會像之前一樣失聯）。"
         )
 
     if not shared_state["running"]:
+        current_profile = (
+            build_search_profile()
+        )
+        current_config = (
+            build_search_config()
+        )
+        current_fingerprint = (
+            compute_run_fingerprint(
+                current_config,
+                current_profile,
+            )
+        )
+
+        last_estimate = st.session_state.get(
+            "last_estimate"
+        )
+        last_estimate_fingerprint = (
+            st.session_state.get(
+                "last_estimate_fingerprint"
+            )
+        )
+
+        estimate_is_fresh = (
+            last_estimate is not None
+            and last_estimate_fingerprint
+            == current_fingerprint
+        )
+
+        can_start = estimate_is_fresh
+
+        if not estimate_is_fresh:
+            st.warning(
+                "請先在上面點「估算這次搜尋的用量與費用」，"
+                "且中途不要再更改任何設定，才能開始搜尋"
+                "（避免設定改了卻沒重新估算，導致實際用量"
+                "跟你看到的預估數字不一樣）。"
+            )
+
+        else:
+            is_high_cost = (
+                last_estimate[
+                    "serpapi_calls_estimate"
+                ]
+                > COST_CONFIRMATION_SERPAPI_CALLS_THRESHOLD
+                or last_estimate[
+                    "openai_cost_usd_estimate"
+                ]
+                > COST_CONFIRMATION_USD_THRESHOLD
+            )
+
+            if is_high_cost:
+                st.warning(
+                    "這次預估用量偏高：約"
+                    f"{last_estimate['serpapi_calls_estimate']}"
+                    " 次 SerpAPI 查詢、OpenAI 費用約 US$"
+                    f"{last_estimate['openai_cost_usd_estimate']:.3f}"
+                    "，請確認後再繼續。"
+                )
+
+                can_start = st.checkbox(
+                    "我了解這次預估費用較高，仍要繼續執行",
+                    key=(
+                        "confirm_high_cost_"
+                        f"{current_fingerprint}"
+                    ),
+                )
+
         if st.button(
-            "開始搜尋", type="primary"
+            "開始搜尋",
+            type="primary",
+            disabled=not can_start,
         ):
-            profile = build_search_profile()
-            config = build_search_config()
+            profile = current_profile
+            config = current_config
 
             shared_state["progress"] = {
                 "stage": "準備中...",
@@ -720,6 +1053,7 @@ def render_search_tab() -> None:
                 f"已保留本次找到 {summary.get('本次找到', 0)} 筆，"
                 f"新增 {summary.get('新增品牌', 0)} 筆，"
                 f"更新 {summary.get('更新品牌', 0)} 筆，"
+                f"鎖定跳過 {summary.get('鎖定跳過', 0)} 筆，"
                 f"資料庫總數 {summary.get('資料庫總數', 0)} 筆"
             )
         else:
@@ -728,6 +1062,7 @@ def render_search_tab() -> None:
                 f"本次找到 {summary.get('本次找到', 0)} 筆，"
                 f"新增 {summary.get('新增品牌', 0)} 筆，"
                 f"更新 {summary.get('更新品牌', 0)} 筆，"
+                f"鎖定跳過 {summary.get('鎖定跳過', 0)} 筆，"
                 f"資料庫總數 {summary.get('資料庫總數', 0)} 筆"
             )
 
@@ -737,6 +1072,66 @@ def render_search_tab() -> None:
                 shared_state["last_log"],
                 language=None,
             )
+
+
+def filter_database_dataframe(
+    dataframe: pd.DataFrame,
+    *,
+    search_name_text: str = "",
+    selected_classification: str = "全部",
+    selected_taiwan_status: str = "全部",
+    selected_country: str = "全部",
+    company_search_text: str = "",
+) -> pd.DataFrame:
+    """
+    套用「資料庫瀏覽」分頁的五個篩選條件，回傳篩選後的結果。
+
+    抽成獨立、不依賴 Streamlit 的純函式，方便直接測試，
+    不用透過真的 Excel 檔案或畫面互動。
+    """
+    filtered_dataframe = dataframe.copy()
+
+    if search_name_text.strip():
+        filtered_dataframe = filtered_dataframe[
+            filtered_dataframe["搜尋名稱"]
+            .astype(str)
+            .str.contains(
+                search_name_text.strip(),
+                case=False,
+                na=False,
+            )
+        ]
+
+    if selected_classification != "全部":
+        filtered_dataframe = filtered_dataframe[
+            filtered_dataframe["AI分類"]
+            == selected_classification
+        ]
+
+    if selected_taiwan_status != "全部":
+        filtered_dataframe = filtered_dataframe[
+            filtered_dataframe["台灣代理狀態"]
+            == selected_taiwan_status
+        ]
+
+    if selected_country != "全部":
+        filtered_dataframe = filtered_dataframe[
+            filtered_dataframe["國家"]
+            == selected_country
+        ]
+
+    if company_search_text.strip():
+        filtered_dataframe = filtered_dataframe[
+            filtered_dataframe["公司名稱"]
+            .astype(str)
+            .str.contains(
+                company_search_text.strip(),
+                case=False,
+                na=False,
+            )
+        ]
+
+    return filtered_dataframe
 
 
 def render_database_tab() -> None:
@@ -809,47 +1204,14 @@ def render_database_tab() -> None:
             "公司名稱關鍵字搜尋"
         )
 
-    filtered_dataframe = dataframe.copy()
-
-    if search_name_text.strip():
-        filtered_dataframe = filtered_dataframe[
-            filtered_dataframe["搜尋名稱"]
-            .astype(str)
-            .str.contains(
-                search_name_text.strip(),
-                case=False,
-                na=False,
-            )
-        ]
-
-    if selected_classification != "全部":
-        filtered_dataframe = filtered_dataframe[
-            filtered_dataframe["AI分類"]
-            == selected_classification
-        ]
-
-    if selected_taiwan_status != "全部":
-        filtered_dataframe = filtered_dataframe[
-            filtered_dataframe["台灣代理狀態"]
-            == selected_taiwan_status
-        ]
-
-    if selected_country != "全部":
-        filtered_dataframe = filtered_dataframe[
-            filtered_dataframe["國家"]
-            == selected_country
-        ]
-
-    if company_search_text.strip():
-        filtered_dataframe = filtered_dataframe[
-            filtered_dataframe["公司名稱"]
-            .astype(str)
-            .str.contains(
-                company_search_text.strip(),
-                case=False,
-                na=False,
-            )
-        ]
+    filtered_dataframe = filter_database_dataframe(
+        dataframe,
+        search_name_text=search_name_text,
+        selected_classification=selected_classification,
+        selected_taiwan_status=selected_taiwan_status,
+        selected_country=selected_country,
+        company_search_text=company_search_text,
+    )
 
     st.caption(
         f"篩選後筆數：{len(filtered_dataframe)}"
@@ -884,37 +1246,90 @@ def render_about_tab() -> None:
         """
 ### 這是做什麼的
 
-自動從 Google 搜尋、以及三大美妝展覽官方名錄
+自動從 **Google 搜尋**、以及**三大美妝展覽官方名錄**
 （Cosmoprof Asia／North America／Worldwide Bologna）
-找出符合條件的海外品牌，並用 AI 判斷是否適合代理、
-是否已有台灣代理商，最後整理進 Excel 資料庫。
+找出符合條件的海外品牌，用 AI 判斷是否適合代理、
+是否已有台灣代理商，最後整理進 Excel 資料庫——
+取代原本手動一家一家上網查、開 Excel 記錄的作法。
 
-### 欄位說明
+---
 
-- **商品詞／定位詞**：描述你想找的商品類型跟品牌定位，
-  系統會自動幫每個詞擴充同義詞／詞形變化（例如
-  shampoo 也會一併搜尋 hair wash、hair cleanser）。
-- **地區**：限制只找特定地區的公司；不選代表不限制地區（全球）。
-- **目標家數**：Google 端跟展覽端各自的目標，
-  實際結果最多約為這個數字的 2 倍，但會受限於真實候選池大小
-  （系統會自動判斷候選池是否已經到頂，不會為了衝數字而亂花錢）。
+## 分頁 1：搜尋設定與執行
 
-### 預估用量怎麼看
+### 1. 設定搜尋條件
 
-執行前先按「估算這次搜尋的用量與費用」，
-確認 SerpAPI 查詢次數／預估費用／預估耗時可以接受，
-再按「開始搜尋」，避免搜出來的結果或費用超出預期。
+| 欄位 | 說明 |
+|---|---|
+| 搜尋名稱 | 給自己看的標籤（例如「歐洲有機洗髮精」），會存進每一筆結果，之後可以在「資料庫瀏覽」用這個名稱篩出同一批結果 |
+| 商品詞 | 想找的商品類型，例如 `shampoo, conditioner`。**必須用英文**——系統會拿去比對國外網站的英文內容，也會自動翻譯成其他語言去搜尋，中文（例如「手工皂」）幾乎比對不到任何結果 |
+| 定位詞 | 品牌定位，例如 `organic, natural, vegan`，同樣要英文 |
+| 排除詞 | 選填，用來排除誤判的類別，例如 `nail, packaging` |
+| 地區 | 可複選（歐洲／歐盟／亞洲／北美…），不選代表不限地區 |
+| 只包含以下國家（進階） | 只要這裡有填國家，**就只搜這些國家，地區選單會被忽略**（兩者不會疊加，避免搜尋範圍比預期大） |
+| 排除以下國家（進階） | 跟地區／包含國家疊加使用，例如「地區選歐洲、這裡填 Germany」＝歐洲扣掉德國 |
 
-### 資料放在哪裡
+商品詞／定位詞／同義詞的自動擴充：`shampoo` 也會一併搜尋
+`hair wash`、`hair cleanser` 這類同義詞或詞形變化，不用自己一一列出。
 
-所有結果都存在專案資料夾底下的 `data/output.xlsx`，
-這份 Excel 就是資料庫，可以直接放在 NAS 上，
-或用「資料庫瀏覽」分頁篩選、下載子集。
+### 2. 執行設定
 
-### 台灣代理查證要不要開
+| 欄位 | 說明 |
+|---|---|
+| 資料來源 | 三選一：**Google 搜尋＋展覽名錄（預設）**／只用 Google／只用展覽名錄。關掉的來源完全不會產生查詢費用 |
+| 目標家數 | Google 端跟展覽端各自的目標，實際結果最多約為這個數字的 2 倍，且受限於真實候選池大小（不會為了衝數字亂花錢） |
+| 查證台灣代理狀況 | 關閉可省下約六成查詢量與費用，但要自行確認台灣市場代理情況 |
+| 測試模式 | 只搜前 2 組英文關鍵字，快速驗證條件設得對不對，正式搜尋前建議先開這個試跑一次 |
+| 進階選項 | 強制重新分析已收錄品牌／強制重新查台灣代理／開啟深度搜尋（Google 多翻頁挖更深，會顯著增加費用） |
 
-如果會自行確認台灣市場代理狀況，可以在「執行設定」裡
-關閉「查證台灣代理狀況」，能省下約六成的查詢量與費用。
+### 3. 預估用量
+
+執行前先按「估算這次搜尋的用量與費用」，會顯示：
+
+- 預估 SerpAPI 查詢次數、預估通過 AI 篩選家數
+- 預估 OpenAI 費用、預估耗時
+- 三大展覽各自符合條件的家數
+- 資料庫裡已經有多少符合這次條件的公司（不用花錢重查）
+
+確認數字合理再按「開始搜尋」，避免結果或費用超出預期。
+
+### 4. 執行搜尋
+
+- 按下「開始搜尋」後會顯示**即時進度條**（第幾筆／共幾筆、已收錄幾家），不是乾等的轉圈圈
+- 隨時可以按「**停止搜尋**」，通常幾秒內就會真的停下來，**已經分析、已經存檔的結果不會遺失**
+- 就算不小心重新整理網頁，進度跟停止按鈕都還在（狀態存在後端，不會因為重新整理就失聯）
+- 執行完成後可以展開「查看本次執行紀錄」看詳細日誌
+
+---
+
+## 分頁 2：資料庫瀏覽
+
+- 顯示 `data/output.xlsx` 累積的所有品牌資料
+- 篩選條件：搜尋名稱（關鍵字）、AI分類、台灣代理狀態、國家、公司名稱
+- 「下載目前篩選結果」可以把篩選後的子集另外匯出成 Excel，欄寬格式跟主資料庫一致
+
+### 人工確認欄位（防止修正被覆蓋）
+
+品牌超過 30 天（或勾選「強制重新分析」）會被 AI 重新分析一次，
+國家、商品類別等自動判斷欄位會被新結果覆蓋。如果同事已經在
+Excel 裡手動核對／修正過某一筆資料，**在「人工確認」欄位填上
+任何內容**（例如「是」、「V」），這一整筆資料之後就會被完全
+鎖定、不再被覆蓋，直到你自己清空這一欄為止。
+
+「後續連絡情況」「連絡人資料」這兩欄則永遠受保護，不需要鎖定
+也不會被自動覆蓋。
+
+---
+
+## 資料放在哪裡
+
+所有結果都存在專案資料夾底下的 `data/output.xlsx`，這份 Excel
+就是資料庫，可以直接放在公司 NAS 上長期保存、多人共用查閱。
+
+## 使用上的小提醒
+
+- 商品詞／定位詞／國家名稱都要用**英文**，介面偵測到中文會跳出警告
+- 「地區」跟「只包含以下國家」不會疊加，填了國家就以國家為準
+- 建議先跑一次「測試模式」確認條件正確，再關掉測試模式跑正式搜尋
 """
     )
 

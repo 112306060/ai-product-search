@@ -1,4 +1,6 @@
 import io
+import os
+import shutil
 from pathlib import Path
 
 from datetime import datetime, timedelta
@@ -34,6 +36,7 @@ NARROW_COLUMN_WIDTHS = {
     "台灣代理狀態": 14,
     "台灣檢查信心分數": 14,
     "展覽年份": 10,
+    "人工確認": 12,
 }
 
 MIN_COLUMN_WIDTH = 10
@@ -45,6 +48,12 @@ MAX_AUTO_COLUMN_WIDTH = 30
 # 使用者可以手動放大該列或點開儲存格查看完整內容。
 DEFAULT_LINE_HEIGHT_POINTS = 15
 MAX_WRAPPED_LINES = 8
+
+# 每次寫入正式資料庫前，先留一份備份，
+# 避免寫入中斷、或事後發現這次結果有誤時無法還原。
+# 只保留最近幾份，避免備份資料夾無限增大。
+BACKUP_DIR_NAME = "backups"
+MAX_BACKUPS_TO_KEEP = 20
 
 
 def set_worksheet_column_widths(
@@ -217,6 +226,81 @@ def apply_column_widths(
     workbook.save(output_path)
 
 
+def backup_existing_file(output_path: str) -> None:
+    """
+    寫入正式檔案前，把目前版本備份一份到 backups/ 資料夾，
+    檔名帶時間戳，只保留最近 MAX_BACKUPS_TO_KEEP 份。
+
+    output_path 尚不存在時（第一次執行）不需要備份。
+    """
+    path = Path(output_path)
+
+    if not path.exists():
+        return
+
+    backup_dir = path.parent / BACKUP_DIR_NAME
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = backup_dir / f"{path.stem}_{timestamp}{path.suffix}"
+
+    shutil.copy2(path, backup_path)
+
+    existing_backups = sorted(
+        backup_dir.glob(f"{path.stem}_*{path.suffix}"),
+        key=lambda backup: backup.stat().st_mtime,
+    )
+
+    for old_backup in existing_backups[:-MAX_BACKUPS_TO_KEEP]:
+        old_backup.unlink()
+
+
+def write_dataframe_atomically(
+    dataframe: pd.DataFrame,
+    output_path: str,
+    sheet_name: str = "總表",
+) -> None:
+    """
+    先把完整內容（含欄寬調整）寫到暫存檔，
+    確認全部寫完沒有出錯後，才用系統的原子替換動作
+    換成正式檔案。
+
+    這樣不管搜尋執行到一半被中斷、斷電，或正式檔案
+    剛好被其他程式佔用，任何時間點看到的 output_path
+    都只會是「完整寫完的舊版本」或「完整寫完的新版本」，
+    不會有寫一半、損毀的中間狀態。
+    """
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    tmp_path = path.with_name(
+        f"{path.stem}.tmp{path.suffix}"
+    )
+
+    dataframe.to_excel(
+        tmp_path,
+        index=False,
+        sheet_name=sheet_name,
+    )
+
+    try:
+        apply_column_widths(
+            str(tmp_path),
+            dataframe,
+            sheet_name=sheet_name,
+        )
+
+    except Exception as error:
+        print(
+            "[COLUMN WIDTH ADJUST FAILED] "
+            f"{error}"
+        )
+
+    backup_existing_file(output_path)
+
+    os.replace(tmp_path, path)
+
+
 def export_dataframe_to_excel_bytes(
     dataframe: pd.DataFrame,
     sheet_name: str = "篩選結果",
@@ -278,10 +362,17 @@ COLUMNS = [
     "台灣代理來源",
     "台灣檢查信心分數",
     "評論",
+    "人工確認",
     "後續連絡情況",
     "連絡人資料",
     "來源連結",
 ]
+
+# 只要「人工確認」欄位有填任何內容（例如「是」、「V」），
+# 代表這筆資料已經有人手動核對／修正過，之後重新分析
+# （到期或強制重新分析）時整筆跳過，不覆蓋任何欄位——
+# 不像 MANUAL_COLUMNS 只保護特定幾欄，這是保護整筆紀錄。
+LOCK_COLUMN = "人工確認"
 
 
 
@@ -449,10 +540,22 @@ def load_recent_existing_domains(
             recent_domains.add(domain)
 
     return recent_domains
+def is_locked_record(record: dict) -> bool:
+    """
+    判斷這筆資料是否已被人工確認、鎖定不再覆蓋。
+
+    只要「人工確認」欄位有填任何內容（不限格式），
+    就視為鎖定。
+    """
+    return bool(
+        str(record.get(LOCK_COLUMN, "")).strip()
+    )
+
+
 def merge_vendor_records(
         existing_records: list[dict],
         new_records: list[dict],
-) -> tuple[list[dict], int, int]:
+) -> tuple[list[dict], int, int, int]:
     """
     合併舊資料與新資料。
 
@@ -460,6 +563,7 @@ def merge_vendor_records(
     - 合併後資料
     - 新增筆數
     - 更新筆數
+    - 鎖定跳過筆數（已人工確認，本次完全不覆蓋）
     """
     merged_by_key: dict[str, dict] = {}
     key_order: list[str] = []
@@ -480,6 +584,7 @@ def merge_vendor_records(
 
     added_count = 0
     updated_count = 0
+    locked_count = 0
 
     # 再合併本次新結果。
     for index, new_record in enumerate(new_records):
@@ -491,6 +596,12 @@ def merge_vendor_records(
 
         if key in merged_by_key:
             old_record = merged_by_key[key]
+
+            # 已人工確認的資料整筆跳過，不覆蓋任何欄位，
+            # 保留人工修正過的內容（不限於 MANUAL_COLUMNS）。
+            if is_locked_record(old_record):
+                locked_count += 1
+                continue
 
             # 先保留人工欄位。
             manual_values = {
@@ -527,7 +638,12 @@ def merge_vendor_records(
     for index, record in enumerate(merged_records, start=1):
         record["編號"] = index
 
-    return merged_records, added_count, updated_count
+    return (
+        merged_records,
+        added_count,
+        updated_count,
+        locked_count,
+    )
 
 
 def export_vendor_records(
@@ -553,35 +669,28 @@ def export_vendor_records(
         else []
     )
 
-    merged_records, added_count, updated_count = merge_vendor_records(
+    (
+        merged_records,
+        added_count,
+        updated_count,
+        locked_count,
+    ) = merge_vendor_records(
         existing_records=existing_records,
         new_records=records,
     )
 
     dataframe = prepare_dataframe(merged_records)
 
-    dataframe.to_excel(
+    write_dataframe_atomically(
+        dataframe,
         output_path,
-        index=False,
-        sheet_name="總表",
     )
-
-    try:
-        apply_column_widths(
-            output_path,
-            dataframe,
-        )
-
-    except Exception as error:
-        print(
-            "[COLUMN WIDTH ADJUST FAILED] "
-            f"{error}"
-        )
 
     summary = {
         "本次找到": len(records),
         "新增品牌": added_count,
         "更新品牌": updated_count,
+        "鎖定跳過": locked_count,
         "資料庫總數": len(merged_records),
     }
 
@@ -590,6 +699,7 @@ def export_vendor_records(
         f"本次找到 {summary['本次找到']} 筆，"
         f"新增 {summary['新增品牌']} 筆，"
         f"更新 {summary['更新品牌']} 筆，"
+        f"鎖定跳過 {summary['鎖定跳過']} 筆，"
         f"總數 {summary['資料庫總數']} 筆"
     )
 
