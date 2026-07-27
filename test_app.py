@@ -18,6 +18,7 @@
 
 import shutil
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -25,6 +26,7 @@ import pandas as pd
 import streamlit as st
 
 import app
+from modules import app_logic
 from config import SearchConfig
 from modules.search_profile import SearchProfile
 
@@ -34,13 +36,13 @@ from modules.search_profile import SearchProfile
 # ---------------------------------------------------------------------------
 
 def test_contains_non_english_keyword_detects_chinese():
-    assert app.contains_non_english_keyword("手工皂") is True
-    assert app.contains_non_english_keyword("shampoo, 手工皂") is True
+    assert app_logic.contains_non_english_keyword("手工皂") is True
+    assert app_logic.contains_non_english_keyword("shampoo, 手工皂") is True
 
 
 def test_contains_non_english_keyword_allows_english():
-    assert app.contains_non_english_keyword("shampoo, conditioner") is False
-    assert app.contains_non_english_keyword("") is False
+    assert app_logic.contains_non_english_keyword("shampoo, conditioner") is False
+    assert app_logic.contains_non_english_keyword("") is False
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +58,7 @@ def test_build_search_profile_parses_keywords_and_regions():
     st.session_state["included_countries_text"] = ""
     st.session_state["excluded_countries_text"] = ""
 
-    profile = app.build_search_profile()
+    profile = app_logic.build_search_profile()
 
     assert profile.product_keywords == ["shampoo", "conditioner"]
     assert profile.positioning_keywords == ["organic", "natural"]
@@ -70,11 +72,11 @@ def test_build_search_profile_no_region_label_means_unrestricted():
     st.session_state["product_keywords_text"] = "shampoo"
     st.session_state["positioning_keywords_text"] = "organic"
     st.session_state["excluded_keywords_text"] = ""
-    st.session_state["selected_regions"] = [app.NO_REGION_LABEL]
+    st.session_state["selected_regions"] = [app_logic.NO_REGION_LABEL]
     st.session_state["included_countries_text"] = ""
     st.session_state["excluded_countries_text"] = ""
 
-    profile = app.build_search_profile()
+    profile = app_logic.build_search_profile()
 
     assert profile.included_regions == []
 
@@ -88,7 +90,7 @@ def test_build_search_profile_included_countries_parsed():
     st.session_state["included_countries_text"] = "Italy, Spain"
     st.session_state["excluded_countries_text"] = ""
 
-    profile = app.build_search_profile()
+    profile = app_logic.build_search_profile()
 
     assert profile.included_countries == ["Italy", "Spain"]
     # 有填國家時，地區會被忽略（resolved_included_countries 的行為），
@@ -100,7 +102,7 @@ def test_build_search_profile_included_countries_parsed():
 
 
 def test_build_search_config_source_toggle_google_only():
-    st.session_state["selected_source"] = app.SOURCE_OPTION_GOOGLE_ONLY
+    st.session_state["selected_source"] = app_logic.SOURCE_OPTION_GOOGLE_ONLY
     st.session_state["target_count"] = 10
     st.session_state["test_mode"] = False
     st.session_state["check_taiwan_distributor"] = True
@@ -108,7 +110,7 @@ def test_build_search_config_source_toggle_google_only():
     st.session_state["force_refresh_brands"] = False
     st.session_state["enable_deep_pagination"] = False
 
-    config = app.build_search_config()
+    config = app_logic.build_search_config()
 
     assert config.enable_google_search is True
     assert config.enable_exhibition_search is False
@@ -116,7 +118,7 @@ def test_build_search_config_source_toggle_google_only():
 
 def test_build_search_config_source_toggle_exhibition_only():
     st.session_state["selected_source"] = (
-        app.SOURCE_OPTION_EXHIBITION_ONLY
+        app_logic.SOURCE_OPTION_EXHIBITION_ONLY
     )
     st.session_state["target_count"] = 10
     st.session_state["test_mode"] = False
@@ -125,14 +127,14 @@ def test_build_search_config_source_toggle_exhibition_only():
     st.session_state["force_refresh_brands"] = False
     st.session_state["enable_deep_pagination"] = False
 
-    config = app.build_search_config()
+    config = app_logic.build_search_config()
 
     assert config.enable_google_search is False
     assert config.enable_exhibition_search is True
 
 
 def test_build_search_config_source_toggle_both():
-    st.session_state["selected_source"] = app.SOURCE_OPTION_BOTH
+    st.session_state["selected_source"] = app_logic.SOURCE_OPTION_BOTH
     st.session_state["target_count"] = 10
     st.session_state["test_mode"] = False
     st.session_state["check_taiwan_distributor"] = True
@@ -140,7 +142,7 @@ def test_build_search_config_source_toggle_both():
     st.session_state["force_refresh_brands"] = False
     st.session_state["enable_deep_pagination"] = False
 
-    config = app.build_search_config()
+    config = app_logic.build_search_config()
 
     assert config.enable_google_search is True
     assert config.enable_exhibition_search is True
@@ -168,8 +170,8 @@ def test_fingerprint_is_stable_for_identical_settings():
     config = SearchConfig(target_count=10, test_mode=True)
     profile = build_fingerprint_test_profile()
 
-    fingerprint_a = app.compute_run_fingerprint(config, profile)
-    fingerprint_b = app.compute_run_fingerprint(config, profile)
+    fingerprint_a = app_logic.compute_run_fingerprint(config, profile)
+    fingerprint_b = app_logic.compute_run_fingerprint(config, profile)
 
     assert fingerprint_a == fingerprint_b
 
@@ -177,10 +179,10 @@ def test_fingerprint_is_stable_for_identical_settings():
 def test_fingerprint_changes_when_target_count_changes():
     profile = build_fingerprint_test_profile()
 
-    fingerprint_before = app.compute_run_fingerprint(
+    fingerprint_before = app_logic.compute_run_fingerprint(
         SearchConfig(target_count=10), profile
     )
-    fingerprint_after = app.compute_run_fingerprint(
+    fingerprint_after = app_logic.compute_run_fingerprint(
         SearchConfig(target_count=500), profile
     )
 
@@ -190,11 +192,11 @@ def test_fingerprint_changes_when_target_count_changes():
 def test_fingerprint_changes_when_profile_changes():
     config = SearchConfig(target_count=10)
 
-    fingerprint_before = app.compute_run_fingerprint(
+    fingerprint_before = app_logic.compute_run_fingerprint(
         config,
         build_fingerprint_test_profile(),
     )
-    fingerprint_after = app.compute_run_fingerprint(
+    fingerprint_after = app_logic.compute_run_fingerprint(
         config,
         build_fingerprint_test_profile(
             product_keywords=["conditioner"]
@@ -218,15 +220,15 @@ def test_exhibition_freshness_reports_missing_local_files():
         )
 
         with mock.patch.object(
-            app,
+            app_logic,
             "BOLOGNA_CATALOG_PATH",
             str(missing_bologna),
         ), mock.patch.object(
-            app,
+            app_logic,
             "NORTH_AMERICA_METADATA_PATH",
             str(missing_north_america),
         ):
-            sources = app.get_exhibition_source_freshness()
+            sources = app_logic.get_exhibition_source_freshness()
 
         by_name = {
             source["name"]: source for source in sources
@@ -260,21 +262,21 @@ def test_exhibition_freshness_reports_recent_sync():
         )
         north_america_path.write_text(
             '{"synced_at": "'
-            + app.datetime.now(app.timezone.utc).isoformat()
+            + datetime.now(timezone.utc).isoformat()
             + '"}',
             encoding="utf-8",
         )
 
         with mock.patch.object(
-            app,
+            app_logic,
             "BOLOGNA_CATALOG_PATH",
             str(bologna_path),
         ), mock.patch.object(
-            app,
+            app_logic,
             "NORTH_AMERICA_METADATA_PATH",
             str(north_america_path),
         ):
-            sources = app.get_exhibition_source_freshness()
+            sources = app_logic.get_exhibition_source_freshness()
 
         by_name = {
             source["name"]: source for source in sources
@@ -330,7 +332,7 @@ def build_filter_test_dataframe() -> pd.DataFrame:
 def test_filter_by_search_name():
     dataframe = build_filter_test_dataframe()
 
-    result = app.filter_database_dataframe(
+    result = app_logic.filter_database_dataframe(
         dataframe,
         search_name_text="歐洲",
     )
@@ -345,7 +347,7 @@ def test_filter_by_search_name():
 def test_filter_by_classification_and_country_combined():
     dataframe = build_filter_test_dataframe()
 
-    result = app.filter_database_dataframe(
+    result = app_logic.filter_database_dataframe(
         dataframe,
         selected_classification="品牌官網",
         selected_country="Italy",
@@ -358,7 +360,7 @@ def test_filter_by_classification_and_country_combined():
 def test_filter_by_company_name_keyword():
     dataframe = build_filter_test_dataframe()
 
-    result = app.filter_database_dataframe(
+    result = app_logic.filter_database_dataframe(
         dataframe,
         company_search_text="gamma",
     )
@@ -370,7 +372,7 @@ def test_filter_by_company_name_keyword():
 def test_filter_with_no_conditions_returns_everything():
     dataframe = build_filter_test_dataframe()
 
-    result = app.filter_database_dataframe(dataframe)
+    result = app_logic.filter_database_dataframe(dataframe)
 
     assert len(result) == len(dataframe)
 

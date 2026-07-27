@@ -27,6 +27,7 @@ data/~$*.xlsx
 # 執行時產生的快取
 data/cache/
 data/coverage/
+data/search_history.jsonl
 api_probe.txt
 asia_api_result.txt
 data/cosmoprof_asia_preview.json
@@ -46,3 +47,7 @@ data/exhibitions/*_test_backup.json
 # Python cache
 __pycache__/
 *.pyc
+
+# 打包交付用資料夾（用 build_release.py 隨時重新產生，
+# 內容含混淆後程式碼、可能複製了 .env／data/，不可進版控）
+dist_release/

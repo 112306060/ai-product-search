@@ -54,6 +54,9 @@ from modules.coverage_tracker import (
     record_run as record_coverage_run,
     summarize_coverage,
 )
+from modules.search_history import (
+    record_search_run,
+)
 
 
 EMPTY_TAIWAN_RESULT = {
@@ -2044,7 +2047,7 @@ def run_search_pipeline(
             "尚未開始分析任何候選）"
         )
 
-        return build_cancelled_summary(
+        summary = build_cancelled_summary(
             records_found=0,
             added=0,
             updated=0,
@@ -2054,6 +2057,10 @@ def run_search_pipeline(
                 )
             ),
         )
+        record_search_run(
+            search_profile, config, summary
+        )
+        return summary
 
     google_records = build_records(
         urls_with_source=google_urls,
@@ -2105,7 +2112,7 @@ def run_search_pipeline(
             "尚未開始分析展覽名錄候選）"
         )
 
-        return build_cancelled_summary(
+        summary = build_cancelled_summary(
             records_found=len(
                 google_records
             ),
@@ -2121,6 +2128,10 @@ def run_search_pipeline(
                 ]
             ),
         )
+        record_search_run(
+            search_profile, config, summary
+        )
+        return summary
 
     exhibition_records = build_records(
         urls_with_source=exhibition_urls,
@@ -2205,6 +2216,12 @@ def run_search_pipeline(
             "已保留目前已分析結果"
         )
 
+        record_search_run(
+            search_profile,
+            config,
+            export_summary,
+        )
+
         return export_summary
 
     print(
@@ -2267,5 +2284,9 @@ def run_search_pipeline(
             "[COVERAGE TRACKING FAILED] "
             f"{error}"
         )
+
+    record_search_run(
+        search_profile, config, export_summary
+    )
 
     return export_summary
