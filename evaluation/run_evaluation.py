@@ -5,7 +5,6 @@ import json
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -14,8 +13,14 @@ from modules.search_profile import SearchProfile
 from modules.website_classifier import classify_website
 
 
-def parse_list(value: str) -> list[str]:
-    return [item.strip() for item in value.split(",") if item.strip()]
+LIST_FIELDS = (
+    "product_keywords",
+    "positioning_keywords",
+    "excluded_keywords",
+    "included_countries",
+    "excluded_countries",
+    "included_regions",
+)
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -32,27 +37,49 @@ def load_jsonl(path: Path) -> list[dict]:
                     f"Invalid JSON on line {line_number}: {error}"
                 ) from error
 
-            if "url" not in row:
-                raise ValueError(f"Line {line_number} is missing 'url'.")
-            if "page_text" not in row:
-                raise ValueError(f"Line {line_number} is missing 'page_text'.")
-            if "expected_is_candidate" not in row:
-                raise ValueError(
-                    f"Line {line_number} is missing 'expected_is_candidate'."
-                )
+            for field in ("url", "page_text", "expected_is_candidate", "search_profile"):
+                if field not in row:
+                    raise ValueError(f"Line {line_number} is missing '{field}'.")
+
             if not isinstance(row["expected_is_candidate"], bool):
                 raise ValueError(
                     f"Line {line_number}: 'expected_is_candidate' must be true/false."
                 )
 
+            profile = row["search_profile"]
+            if not isinstance(profile, dict) or not str(profile.get("query", "")).strip():
+                raise ValueError(
+                    f"Line {line_number}: search_profile.query is required."
+                )
+            for field in LIST_FIELDS:
+                value = profile.get(field, [])
+                if not isinstance(value, list):
+                    raise ValueError(
+                        f"Line {line_number}: search_profile.{field} must be a list."
+                    )
+
             rows.append(row)
     return rows
 
 
-def safe_divide(numerator: int, denominator: int) -> float:
-    if denominator == 0:
-        return 0.0
-    return numerator / denominator
+def build_profile(data: dict) -> SearchProfile:
+    return SearchProfile(
+        query=str(data["query"]).strip(),
+        product_keywords=data.get("product_keywords", []),
+        positioning_keywords=data.get("positioning_keywords", []),
+        excluded_keywords=data.get("excluded_keywords", []),
+        included_countries=data.get("included_countries", []),
+        excluded_countries=data.get("excluded_countries", []),
+        included_regions=data.get("included_regions", []),
+        require_official_url=data.get("require_official_url", True),
+        require_product_match=data.get("require_product_match", True),
+        require_positioning_match=data.get("require_positioning_match", True),
+        allow_unknown_country=data.get("allow_unknown_country", True),
+    )
+
+
+def safe_divide(numerator: int | float, denominator: int | float) -> float:
+    return 0.0 if denominator == 0 else numerator / denominator
 
 
 def calculate_metrics(results: list[dict]) -> dict:
@@ -79,50 +106,28 @@ def calculate_metrics(results: list[dict]) -> dict:
     }
 
 
-def build_parser() -> argparse.ArgumentParser:
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Evaluate the website LLM classifier against human labels."
     )
     parser.add_argument("dataset", type=Path)
-    parser.add_argument("--query", required=True)
-    parser.add_argument("--product-keywords", default="")
-    parser.add_argument("--positioning-keywords", default="")
-    parser.add_argument("--excluded-keywords", default="")
-    parser.add_argument("--included-countries", default="")
-    parser.add_argument("--excluded-countries", default="")
-    parser.add_argument("--included-regions", default="")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument(
         "--output",
         type=Path,
         default=Path("evaluation/evaluation_results.json"),
     )
-    return parser
-
-
-def main() -> None:
-    args = build_parser().parse_args()
-
-    profile = SearchProfile(
-        query=args.query,
-        product_keywords=parse_list(args.product_keywords),
-        positioning_keywords=parse_list(args.positioning_keywords),
-        excluded_keywords=parse_list(args.excluded_keywords),
-        included_countries=parse_list(args.included_countries),
-        excluded_countries=parse_list(args.excluded_countries),
-        included_regions=parse_list(args.included_regions),
-    )
+    args = parser.parse_args()
 
     dataset = load_jsonl(args.dataset)
     if args.limit > 0:
         dataset = dataset[: args.limit]
-
     if not dataset:
         raise ValueError("Dataset is empty.")
 
     results: list[dict] = []
-
     for index, row in enumerate(dataset, start=1):
+        profile = build_profile(row["search_profile"])
         prediction = classify_website(
             url=row["url"],
             page_text=row["page_text"],
@@ -131,10 +136,11 @@ def main() -> None:
 
         expected = row["expected_is_candidate"]
         predicted = bool(prediction.get("is_candidate", False))
-
         result = {
             "index": index,
+            "name": row.get("name", ""),
             "url": row["url"],
+            "query": profile.query,
             "expected": expected,
             "predicted": predicted,
             "correct": expected == predicted,
@@ -149,24 +155,12 @@ def main() -> None:
         mark = "PASS" if result["correct"] else "FAIL"
         print(
             f"[{index}/{len(dataset)}] {mark} "
-            f"expected={expected} predicted={predicted} {row['url']}"
+            f"expected={expected} predicted={predicted} "
+            f"query={profile.query!r} {row['url']}"
         )
 
     metrics = calculate_metrics(results)
-
-    payload = {
-        "search_profile": {
-            "query": profile.query,
-            "product_keywords": profile.product_keywords,
-            "positioning_keywords": profile.positioning_keywords,
-            "excluded_keywords": profile.excluded_keywords,
-            "included_countries": profile.included_countries,
-            "excluded_countries": profile.excluded_countries,
-            "included_regions": profile.included_regions,
-        },
-        "metrics": metrics,
-        "results": results,
-    }
+    payload = {"metrics": metrics, "results": results}
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
