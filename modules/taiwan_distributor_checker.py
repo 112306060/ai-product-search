@@ -177,7 +177,7 @@ def analyze_taiwan_distributor(
     evidence_text = format_search_evidence(search_results)
 
     prompt = f"""
-You are checking whether an overseas beauty or hair care brand already has
+You are checking whether an overseas consumer brand already has
 an official distributor, importer, subsidiary, or agent in Taiwan.
 
 Brand name:
@@ -228,7 +228,7 @@ Important rules:
 10. If the distributor name is missing, do not use
     "已有官方代理" or "疑似已有代理".
 
-11. If the evidence appears unrelated to the beauty brand, ignore it.
+11. If the evidence appears unrelated to this brand, ignore it.
 
 12. If the status is "未找到代理證據", source_url must be an empty string.
    Do not use the official brand homepage as proof that no distributor exists.
