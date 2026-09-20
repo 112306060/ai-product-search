@@ -34,18 +34,12 @@ from modules.url_utils import (
 )
 from modules.website_classifier import classify_website
 from modules.candidate_filter import filter_candidates
-from modules.exhibitions.cosmoprof_asia import (
-    get_all_exhibitors,
-)
-from modules.exhibitions.cosmoprof_bologna import (
-    get_all_exhibitors as get_all_bologna_exhibitors,
-)
-from modules.exhibitions.cpna_dynamic_search import (
-    search_cpna_candidates,
-)
-from modules.exhibitions.cosmoprof_bologna_website_finder import (
-    resolve_official_website as resolve_bologna_official_website,
-)
+# 注意：modules.exhibitions 底下四支展覽爬蟲刻意不放在檔案頂端
+# import——它們是選配模組（賣給其他產業客戶時不一定會交付這個
+# 資料夾），改成在各自的 collect_cosmoprof_*_urls() 函式內部
+# lazy import，這樣即使 modules/exhibitions/ 整個資料夾不存在，
+# 只要 config.enable_exhibition_search=False，這支檔案本身
+# 依然可以正常 import、正常執行 Google-only 搜尋。
 from modules.search_cost_estimator import (
     estimate_search_cost,
     format_cost_estimate,
@@ -112,6 +106,13 @@ SATURATION_MIN_YIELD_PER_KEYWORD = 1.0
 # 實際接受率常常遠低於平均值，池子太小容易變成 0 家。
 SEARCH_POOL_SAFETY_MULTIPLIER = 20
 SEARCH_POOL_MIN_FLOOR = 40
+
+# 每個語言至少會被搜尋的關鍵字組數，不管候選池是否已經
+# 足夠都會執行完這一輪保底搜尋，才進入「候選池夠了就停」
+# 的加碼邏輯。避免排序在前面的語言（尤其是英文，永遠排
+# 第一個）單靠自己就填滿候選池，導致後面的語言完全沒被
+# 搜過、一次都沒被看到——不是「省下來」，是根本沒機會。
+MIN_KEYWORDS_PER_LANGUAGE = 4
 
 # Bologna 展商官網查詢（每家公司互不相依）。
 BOLOGNA_WEBSITE_LOOKUP_WORKERS = 5
@@ -890,52 +891,17 @@ def collect_google_urls(
     seen_domains = set()
     keywords_used_total = 0
 
-    for language_index, language in (
-        enumerate(languages)
+    def run_language_batch(
+        language,
+        language_keywords,
     ):
-        remaining_budget = (
-            MAX_KEYWORDS
-            - keywords_used_total
-        )
+        """
+        執行單一語言的一批關鍵字搜尋，
+        更新累積結果，回傳這批關鍵字的
+        新候選數（給呼叫端判斷是否飽和）。
+        """
 
-        if remaining_budget <= 0:
-            print(
-                "[KEYWORD LIMIT] "
-                "已用完全部關鍵字名額，"
-                "停止擴張語言"
-            )
-            break
-
-        if (
-            language == "english"
-            and len(languages) == 1
-        ):
-            # 只解析出英文（例如只選英美加）時，
-            # 不用省名額給其他語言，直接用完整版本
-            # （含 brand/professional/distributor）。
-            language_keywords = (
-                generate_keywords(
-                    search_profile,
-                    languages=(
-                        config.languages
-                    ),
-                )[:remaining_budget]
-            )
-
-        else:
-            language_keywords = (
-                generate_keywords_for_language(
-                    search_profile,
-                    language,
-                    max_count=min(
-                        PER_LANGUAGE_KEYWORD_BUDGET,
-                        remaining_budget,
-                    ),
-                )
-            )
-
-        if not language_keywords:
-            continue
+        nonlocal keywords_used_total
 
         print(
             "[LANGUAGE SEARCH] "
@@ -957,7 +923,7 @@ def collect_google_urls(
             )
         )
 
-        new_domains_this_language = 0
+        new_domains_this_batch = 0
 
         for (
             url,
@@ -971,7 +937,7 @@ def collect_google_urls(
                 not in seen_domains
             ):
                 seen_domains.add(domain)
-                new_domains_this_language += 1
+                new_domains_this_batch += 1
 
             google_urls.append(
                 (url, source)
@@ -981,8 +947,111 @@ def collect_google_urls(
             language_keywords
         )
 
+        return new_domains_this_batch
+
+    if (
+        len(languages) == 1
+        and languages[0] == "english"
+    ):
+        # 只解析出英文（例如只選英美加）時，
+        # 沒有其他語言需要保底，維持原本行為：
+        # 不用省名額，直接用完整版本
+        # （含 brand/professional/distributor）。
+        remaining_budget = MAX_KEYWORDS
+
+        language_keywords = (
+            generate_keywords(
+                search_profile,
+                languages=(
+                    config.languages
+                ),
+            )[:remaining_budget]
+        )
+
+        if language_keywords:
+            new_domains = run_language_batch(
+                "english",
+                language_keywords,
+            )
+
+            print(
+                "[LANGUAGE RESULT] "
+                f"english 貢獻 {new_domains} "
+                "家新候選（用了 "
+                f"{len(language_keywords)} "
+                "組關鍵字，累計 "
+                f"{len(seen_domains)} 家）"
+            )
+
+        return dedupe_urls(google_urls)
+
+    # 多語言情境：先讓每個語言各自的關鍵字清單
+    # 一次生成好（同一語言的保底輪、加碼輪從同一份
+    # 清單依序取用，不會因為分兩輪呼叫而重複生成、
+    # 重複搜尋同一組關鍵字）。
+    language_keyword_pool = {
+        language: generate_keywords_for_language(
+            search_profile,
+            language,
+            max_count=PER_LANGUAGE_KEYWORD_BUDGET,
+        )
+        for language in languages
+    }
+
+    language_stats = {}
+
+    print(
+        "[保底輪開始] "
+        f"每個語言至少搜尋 "
+        f"{MIN_KEYWORDS_PER_LANGUAGE} "
+        "組關鍵字，確保後面的語言不會"
+        "因為前面語言已經填滿候選池"
+        "而完全沒被搜過"
+    )
+
+    for language in languages:
+        remaining_budget = (
+            MAX_KEYWORDS
+            - keywords_used_total
+        )
+
+        if remaining_budget <= 0:
+            print(
+                "[KEYWORD LIMIT] "
+                "已用完全部關鍵字名額，"
+                "保底輪提前結束"
+            )
+            break
+
+        full_list = language_keyword_pool.get(
+            language,
+            [],
+        )
+
+        floor_count = min(
+            MIN_KEYWORDS_PER_LANGUAGE,
+            len(full_list),
+            remaining_budget,
+        )
+
+        language_keywords = full_list[
+            :floor_count
+        ]
+
+        if not language_keywords:
+            language_stats[language] = {
+                "keywords_used": 0,
+                "is_saturated": True,
+            }
+            continue
+
+        new_domains = run_language_batch(
+            language,
+            language_keywords,
+        )
+
         yield_rate = (
-            new_domains_this_language
+            new_domains
             / len(language_keywords)
         )
 
@@ -991,10 +1060,16 @@ def collect_google_urls(
             < SATURATION_MIN_YIELD_PER_KEYWORD
         )
 
+        language_stats[language] = {
+            "keywords_used": len(
+                language_keywords
+            ),
+            "is_saturated": is_low_yield,
+        }
+
         print(
-            "[LANGUAGE RESULT] "
-            f"{language} 貢獻 "
-            f"{new_domains_this_language} "
+            "[保底輪] "
+            f"{language} 貢獻 {new_domains} "
             "家新候選（用了 "
             f"{len(language_keywords)} "
             "組關鍵字，累計 "
@@ -1006,6 +1081,12 @@ def collect_google_urls(
             )
         )
 
+    # 加碼輪：保底輪跑完之後，如果候選池還不夠，
+    # 才依語言優先順序繼續加碼，判定飽和的語言
+    # 保底輪已經看過一次，直接跳過不加碼。
+    for language_index, language in (
+        enumerate(languages)
+    ):
         pool_is_sufficient = (
             len(seen_domains)
             >= required_candidate_pool
@@ -1017,10 +1098,84 @@ def collect_google_urls(
                 f"已累積 {len(seen_domains)} "
                 "家候選，相對目標家數 "
                 f"{google_limit} 已足夠，"
-                "停止擴張語言"
+                "停止加碼"
             )
-
             break
+
+        stats = language_stats.get(
+            language,
+            {
+                "keywords_used": 0,
+                "is_saturated": True,
+            },
+        )
+
+        if stats["is_saturated"]:
+            continue
+
+        remaining_budget = (
+            MAX_KEYWORDS
+            - keywords_used_total
+        )
+
+        if remaining_budget <= 0:
+            print(
+                "[KEYWORD LIMIT] "
+                "已用完全部關鍵字名額，"
+                "停止加碼"
+            )
+            break
+
+        full_list = language_keyword_pool.get(
+            language,
+            [],
+        )
+
+        already_used = stats[
+            "keywords_used"
+        ]
+
+        topup_count = min(
+            len(full_list) - already_used,
+            remaining_budget,
+        )
+
+        if topup_count <= 0:
+            continue
+
+        language_keywords = full_list[
+            already_used:
+            already_used + topup_count
+        ]
+
+        new_domains = run_language_batch(
+            language,
+            language_keywords,
+        )
+
+        yield_rate = (
+            new_domains
+            / len(language_keywords)
+        )
+
+        is_low_yield = (
+            yield_rate
+            < SATURATION_MIN_YIELD_PER_KEYWORD
+        )
+
+        print(
+            "[加碼輪] "
+            f"{language} 貢獻 {new_domains} "
+            "家新候選（用了 "
+            f"{len(language_keywords)} "
+            "組關鍵字，累計 "
+            f"{len(seen_domains)} 家）"
+            + (
+                "，判定飽和"
+                if is_low_yield
+                else ""
+            )
+        )
 
         is_last_language = (
             language_index
@@ -1085,7 +1240,20 @@ def collect_cosmoprof_asia_urls(
         )
         return []
 
-    exhibitors = get_all_exhibitors()
+    try:
+        from modules.exhibitions.cosmoprof_asia import (
+            get_all_exhibitors,
+        )
+
+        exhibitors = get_all_exhibitors()
+
+    except Exception as error:
+        print(
+            "[COSMOPROF ASIA ERROR] "
+            "展覽名錄模組未安裝或查詢失敗："
+            f"{error}"
+        )
+        return []
 
     # Asia 的公司描述雖然是真實文案，但定位詞清單
     # （organic/natural/vegan…）終究有限，公司可能用
@@ -1204,13 +1372,18 @@ def collect_cosmoprof_bologna_urls(
         return []
 
     try:
+        from modules.exhibitions.cosmoprof_bologna import (
+            get_all_exhibitors as get_all_bologna_exhibitors,
+        )
+
         exhibitors = (
             get_all_bologna_exhibitors()
         )
 
     except Exception as error:
         print(
-            "[COSMOPROF BOLOGNA ERROR]",
+            "[COSMOPROF BOLOGNA ERROR] "
+            "展覽名錄模組未安裝或查詢失敗：",
             error,
         )
         return []
@@ -1254,6 +1427,10 @@ def collect_cosmoprof_bologna_urls(
     ]
 
     if resolve_official_website:
+        from modules.exhibitions.cosmoprof_bologna_website_finder import (
+            resolve_official_website as resolve_bologna_official_website,
+        )
+
         with ThreadPoolExecutor(
             max_workers=(
                 BOLOGNA_WEBSITE_LOOKUP_WORKERS
@@ -1466,6 +1643,10 @@ def collect_cosmoprof_north_america_urls(
         return []
 
     try:
+        from modules.exhibitions.cpna_dynamic_search import (
+            search_cpna_candidates,
+        )
+
         result = search_cpna_candidates(
             query=query,
             max_records=None,
@@ -1476,7 +1657,8 @@ def collect_cosmoprof_north_america_urls(
 
     except Exception as error:
         print(
-            "[CPNA DYNAMIC SEARCH ERROR]",
+            "[CPNA DYNAMIC SEARCH ERROR] "
+            "展覽名錄模組未安裝或查詢失敗：",
             error,
         )
         return []

@@ -14,15 +14,9 @@
 import dataclasses
 
 from modules.candidate_filter import filter_candidates
-from modules.exhibitions.cosmoprof_asia import (
-    get_all_exhibitors as get_all_asia_exhibitors,
-)
-from modules.exhibitions.cosmoprof_bologna import (
-    get_all_exhibitors as get_all_bologna_exhibitors,
-)
-from modules.exhibitions.cpna_dynamic_search import (
-    search_cpna_candidates,
-)
+# 注意：modules.exhibitions 是選配模組，這裡刻意不放在檔案頂端
+# import，改成在下面實際用到的地方各自 lazy import，
+# 讓沒有交付這個資料夾的客戶版本也能正常估算 Google-only 用量。
 from modules.keyword_generator import (
     MAX_KEYWORDS,
     generate_keywords,
@@ -148,6 +142,10 @@ def estimate_search_cost(
         and config.enable_exhibition_search
     ):
         try:
+            from modules.exhibitions.cosmoprof_asia import (
+                get_all_exhibitors as get_all_asia_exhibitors,
+            )
+
             asia_exhibitors = (
                 get_all_asia_exhibitors()
             )
@@ -174,6 +172,10 @@ def estimate_search_cost(
             )
 
         try:
+            from modules.exhibitions.cpna_dynamic_search import (
+                search_cpna_candidates,
+            )
+
             query = (
                 search_profile.query.strip()
                 or " ".join(
@@ -202,11 +204,16 @@ def estimate_search_cost(
             )
 
     try:
-        bologna_exhibitors = (
-            get_all_bologna_exhibitors()
-            if config.enable_exhibition_search
-            else []
-        )
+        if config.enable_exhibition_search:
+            from modules.exhibitions.cosmoprof_bologna import (
+                get_all_exhibitors as get_all_bologna_exhibitors,
+            )
+
+            bologna_exhibitors = (
+                get_all_bologna_exhibitors()
+            )
+        else:
+            bologna_exhibitors = []
 
         # Bologna 的定位詞判斷交給後續 AI 分析
         # （原因見 search_pipeline.py 的說明），

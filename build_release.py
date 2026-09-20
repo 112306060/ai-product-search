@@ -12,6 +12,15 @@
 用法：
     python build_release.py                    # 平常更新程式碼／展覽名錄用
     python build_release.py --include-existing-data   # 只有第一次交付才用
+    python build_release.py --no-exhibitions   # 交付給其他產業客戶：
+                                                # 展覽名錄整個不打包，
+                                                # 是可以另外加購的選配模組
+                                                # （modules/search_pipeline.py、
+                                                # search_cost_estimator.py、
+                                                # app_logic.py 都已經改成
+                                                # 就算 modules/exhibitions/
+                                                # 資料夾不存在也能正常執行
+                                                # Google-only 搜尋）
 
 ⚠️ 重要：對方拿到系統後會自己持續累積資料，他們的 data/output.xlsx
 之後只存在他們的電腦上，跟這台開發機的版本會逐漸分歧。所以預設
@@ -39,6 +48,7 @@ OUTPUT_DIR = PROJECT_ROOT / "dist_release"
 # 套件之外，還需要附上這些檔案（都不含商業邏輯，不需要混淆）。
 FILES_TO_COPY = [
     "app.py",
+    "launcher.py",
     "requirements.txt",
     ".env.example",
     "run_frontend.bat",
@@ -63,7 +73,7 @@ CACHE_DIR = "data/cache"
 
 
 def run_pyarmor_obfuscation() -> None:
-    print("[1/3] 用 PyArmor 混淆 modules/ 與 config.py ...")
+    print("[1/4] 用 PyArmor 混淆 modules/ 與 config.py ...")
 
     result = subprocess.run(
         [
@@ -84,10 +94,25 @@ def run_pyarmor_obfuscation() -> None:
         )
 
 
+def strip_exhibition_module() -> None:
+    print(
+        "[2/4] 移除展覽名錄選配模組"
+        "（--no-exhibitions）..."
+    )
+
+    exhibitions_dir = (
+        OUTPUT_DIR / "modules" / "exhibitions"
+    )
+
+    if exhibitions_dir.exists():
+        shutil.rmtree(exhibitions_dir)
+
+
 def copy_supporting_files(
     include_existing_data: bool,
+    include_exhibitions: bool,
 ) -> None:
-    print("[2/3] 複製 app.py 與其他交付檔案 ...")
+    print("[3/4] 複製 app.py 與其他交付檔案 ...")
 
     for filename in FILES_TO_COPY:
         source_path = PROJECT_ROOT / filename
@@ -101,23 +126,29 @@ def copy_supporting_files(
             OUTPUT_DIR / filename,
         )
 
-    data_dir = OUTPUT_DIR / "data"
-    (data_dir / "exhibitions").mkdir(
-        parents=True, exist_ok=True
-    )
+    if include_exhibitions:
+        data_dir = OUTPUT_DIR / "data"
+        (data_dir / "exhibitions").mkdir(
+            parents=True, exist_ok=True
+        )
 
-    for relative_path in EXHIBITION_CACHE_FILES:
-        source_path = PROJECT_ROOT / relative_path
+        for relative_path in EXHIBITION_CACHE_FILES:
+            source_path = PROJECT_ROOT / relative_path
 
-        if not source_path.exists():
-            print(
-                f"  警告：找不到 {relative_path}，略過"
+            if not source_path.exists():
+                print(
+                    f"  警告：找不到 {relative_path}，略過"
+                )
+                continue
+
+            shutil.copy2(
+                source_path,
+                OUTPUT_DIR / relative_path,
             )
-            continue
-
-        shutil.copy2(
-            source_path,
-            OUTPUT_DIR / relative_path,
+    else:
+        print(
+            "  （未打包展覽名錄快取，"
+            "此版本為選配模組加購版本）"
         )
 
     if not include_existing_data:
@@ -150,10 +181,18 @@ def copy_supporting_files(
 
 def print_summary(
     include_existing_data: bool,
+    include_exhibitions: bool,
 ) -> None:
-    print("[3/3] 打包完成")
+    print("[4/4] 打包完成")
     print()
     print(f"交付資料夾：{OUTPUT_DIR}")
+
+    exhibition_line = (
+        "data/exhibitions/（展覽名錄快取）"
+        if include_exhibitions
+        else "（不含 modules/exhibitions/、"
+        "展覽名錄為選配模組，未加購）"
+    )
 
     if include_existing_data:
         print(
@@ -162,8 +201,8 @@ def print_summary(
             "pyarmor_runtime_*/（PyArmor runtime）、"
             "requirements.txt、.env.example、run_frontend.bat、"
             "data/output.xlsx（現有資料庫）、"
-            "data/exhibitions/（展覽名錄快取）、"
-            "data/cache/（API 回應快取）"
+            "data/cache/（API 回應快取）、"
+            f"{exhibition_line}"
         )
         print()
         print(
@@ -180,7 +219,7 @@ def print_summary(
             "modules/（混淆後）、config.py（混淆後）、"
             "pyarmor_runtime_*/（PyArmor runtime）、"
             "requirements.txt、.env.example、run_frontend.bat、"
-            "data/exhibitions/（展覽名錄快取）"
+            f"{exhibition_line}"
         )
         print()
         print(
@@ -190,8 +229,40 @@ def print_summary(
         )
         print(
             "  app.py、modules/、config.py、"
-            "pyarmor_runtime_*/、data/exhibitions/"
+            "pyarmor_runtime_*/"
+            + (
+                "、data/exhibitions/"
+                if include_exhibitions
+                else ""
+            )
         )
+
+    if not include_exhibitions:
+        print()
+        print(
+            "此版本畫面上「資料來源」只會顯示 Google 搜尋，"
+            "不會出現展覽名錄選項，也不會嘗試載入"
+            "modules/exhibitions/（已改成 lazy import，"
+            "資料夾不存在時不影響其他功能）。"
+        )
+
+    print()
+    print(
+        "⚠️ 授權檔案（license.lic）不會由這支腳本產生，"
+        "也絕對不會打包 keys/ 私鑰資料夾。"
+        "交付前請另外執行："
+    )
+    print(
+        '  python generate_license.py --customer "客戶名稱" '
+        "--days 365"
+    )
+    print(
+        "然後把產生的 license.lic 手動複製到這個客戶的 "
+        f"{OUTPUT_DIR.name}/ 資料夾內（跟 app.py 同一層），"
+        "沒有這個檔案軟體開啟時會直接拒絕執行。"
+        "每次續約，重新執行一次上面指令覆蓋掉舊的 "
+        "license.lic 即可，不需要重新打包程式碼。"
+    )
 
 
 def main() -> None:
@@ -204,14 +275,38 @@ def main() -> None:
             "只有第一次交付（對方那邊還沒有資料）才需要"
         ),
     )
+    parser.add_argument(
+        "--no-exhibitions",
+        action="store_true",
+        help=(
+            "交付版本整個不含展覽名錄模組"
+            "（modules/exhibitions/ 與快取檔），"
+            "用於賣給其他產業客戶時把展覽名錄當成"
+            "選配加購功能，預設（不加此參數）"
+            "維持現況、照樣打包展覽名錄，"
+            "不影響現有交付給父親公司的版本"
+        ),
+    )
     args = parser.parse_args()
+
+    include_exhibitions = not args.no_exhibitions
 
     if OUTPUT_DIR.exists():
         shutil.rmtree(OUTPUT_DIR)
 
     run_pyarmor_obfuscation()
-    copy_supporting_files(args.include_existing_data)
-    print_summary(args.include_existing_data)
+
+    if not include_exhibitions:
+        strip_exhibition_module()
+
+    copy_supporting_files(
+        args.include_existing_data,
+        include_exhibitions,
+    )
+    print_summary(
+        args.include_existing_data,
+        include_exhibitions,
+    )
 
 
 if __name__ == "__main__":

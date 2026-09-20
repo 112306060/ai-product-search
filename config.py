@@ -85,6 +85,13 @@ class SearchConfig:
 
 
 DEFAULT_CONFIG = SearchConfig()
+
+# 這是使用者打開「搜尋設定」頁面時，畫面上預先填好的預設值。
+# 賣給不同產業的客戶前，記得手動把這裡改成對應該產業的預設
+# 商品詞／定位詞／地區，客戶自己還是可以在畫面上改，這裡只是
+# 決定他們一打開畫面看到的是什麼，避免美妝業的預設值出現在
+# 露營用品客戶的畫面上。目前刻意不做「多組範本讓客戶自己存」
+# 這種功能——每個客戶交付前手動改這裡一次就夠用。
 DEFAULT_SEARCH_PROFILE = SearchProfile(
     query="歐洲有機天然洗髮精",
     product_keywords=[

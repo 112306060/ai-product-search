@@ -22,11 +22,29 @@ import pandas as pd
 import streamlit as st
 
 from config import SearchConfig
+from modules.license_manager import (
+    RENEWAL_WARNING_DAYS,
+    check_license,
+)
 from modules.search_pipeline import run_search_pipeline
 from modules.search_profile import SearchProfile
 
 
 OUTPUT_PATH = "data/output.xlsx"
+
+# 展覽名錄（Asia／North America／Bologna）是選配模組。
+# 賣給其他產業的客戶時，交付版本可能整個不包含
+# modules/exhibitions/ 資料夾（見 build_release.py 的
+# --no-exhibitions 選項），這裡用 import 是否成功來判斷
+# 這一版有沒有這個功能，藉此決定要不要在畫面上顯示
+# 「展覽名錄」相關選項。
+try:
+    import modules.exhibitions  # noqa: F401
+
+    EXHIBITION_SOURCE_AVAILABLE = True
+
+except ImportError:
+    EXHIBITION_SOURCE_AVAILABLE = False
 
 REGION_LABELS = {
     "europe": "歐洲（Europe，含非歐盟國家）",
@@ -43,11 +61,23 @@ SOURCE_OPTION_GOOGLE_ONLY = "只用 Google 搜尋"
 SOURCE_OPTION_EXHIBITION_ONLY = (
     "只用展覽名錄（Asia／North America／Bologna）"
 )
-SOURCE_OPTIONS = [
-    SOURCE_OPTION_BOTH,
-    SOURCE_OPTION_GOOGLE_ONLY,
-    SOURCE_OPTION_EXHIBITION_ONLY,
-]
+SOURCE_OPTIONS = (
+    [
+        SOURCE_OPTION_BOTH,
+        SOURCE_OPTION_GOOGLE_ONLY,
+        SOURCE_OPTION_EXHIBITION_ONLY,
+    ]
+    if EXHIBITION_SOURCE_AVAILABLE
+    else [
+        SOURCE_OPTION_GOOGLE_ONLY,
+    ]
+)
+
+DEFAULT_SOURCE_OPTION = (
+    SOURCE_OPTION_BOTH
+    if EXHIBITION_SOURCE_AVAILABLE
+    else SOURCE_OPTION_GOOGLE_ONLY
+)
 
 # 超過幾天沒同步就提醒使用者——展覽官方名錄不是即時抓取，
 # 而是本地快取檔，久了可能還停留在舊一屆的資料。
@@ -263,12 +293,15 @@ def build_search_profile() -> SearchProfile:
                 "selected_regions", []
             )
         ),
+        require_positioning_match=st.session_state.get(
+            "require_positioning_match", True
+        ),
     )
 
 
 def build_search_config() -> SearchConfig:
     selected_source = st.session_state.get(
-        "selected_source", SOURCE_OPTION_BOTH
+        "selected_source", DEFAULT_SOURCE_OPTION
     )
 
     return SearchConfig(

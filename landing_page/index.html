@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>找源｜AI 海外品牌搜尋系統</title>
+<meta name="description" content="AI 海外品牌搜尋系統：自動搜尋海外品牌、比對官網內容、查證台灣代理現況，整理成可直接決策的 Excel 報表。">
+<style>
+  @font-face {
+    font-family: 'Fraunces';
+    src: local('Fraunces');
+  }
+
+  :root {
+    --bg: #f7f5f0;
+    --bg-raised: #fffefb;
+    --ink: #1c2333;
+    --ink-soft: #454b5c;
+    --muted: #8b8578;
+    --line: #e2ddd0;
+    --accent: #b8791e;
+    --accent-ink: #ffffff;
+    --indigo: #2b3a67;
+    --indigo-soft: #eef0f7;
+    --good: #3f7d5c;
+    --warn: #a34a2f;
+    --font-display: 'Fraunces', 'Noto Serif TC', serif;
+    --font-body: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161c;
+      --bg-raised: #1c1f28;
+      --ink: #ece8de;
+      --ink-soft: #c3bfb4;
+      --muted: #8b8a82;
+      --line: #33363f;
+      --accent: #dda24a;
+      --accent-ink: #1c1f28;
+      --indigo: #8fa0d6;
+      --indigo-soft: #232a42;
+      --good: #6fbf96;
+      --warn: #e08a68;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14161c;
+    --bg-raised: #1c1f28;
+    --ink: #ece8de;
+    --ink-soft: #c3bfb4;
+    --muted: #8b8a82;
+    --line: #33363f;
+    --accent: #dda24a;
+    --accent-ink: #1c1f28;
+    --indigo: #8fa0d6;
+    --indigo-soft: #232a42;
+    --good: #6fbf96;
+    --warn: #e08a68;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  header.hero {
+    padding: 96px 0 72px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 5vw, 3.2rem);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0 0 24px;
+    color: var(--ink);
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .lede {
+    font-size: 1.15rem;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0 0 32px;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat b {
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--indigo);
+  }
+
+  .stat span {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  section {
+    padding: 64px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin: 0 0 28px;
+    text-wrap: balance;
+  }
+
+  .lead-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .problem-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 14px;
+  }
+
+  .problem-list li {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    color: var(--ink-soft);
+  }
+
+  .problem-list li::before {
+    content: '✕';
+    color: var(--warn);
+    font-family: var(--font-mono);
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .origin {
+    background: var(--indigo-soft);
+    border-radius: 14px;
+    padding: 36px 32px;
+    margin-top: 8px;
+  }
+
+  .origin p { margin: 0 0 16px; color: var(--ink-soft); }
+  .origin p:last-child { margin-bottom: 0; }
+  .origin strong { color: var(--ink); }
+
+  .pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    margin: 8px 0 32px;
+  }
+
+  .pipeline .step {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 16px;
+    color: var(--ink-soft);
+  }
+
+  .pipeline .arrow {
+    color: var(--muted);
+    padding: 0 10px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 620px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .card h3 {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 1rem;
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card p { margin: 0; color: var(--ink-soft); font-size: 0.95rem; }
+
+  .sample-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-top: 8px;
+  }
+
+  .sample-table th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sample-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+
+  .sample-table td:first-child { color: var(--ink); font-weight: 600; }
+
+  .status-pill {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 3px 9px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+
+  .status-pill.found { background: rgba(63,125,92,0.12); color: var(--good); }
+  .status-pill.taken { background: rgba(163,74,47,0.12); color: var(--warn); }
+
+  .table-scroll { overflow-x: auto; }
+
+  .service-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 620px) {
+    .service-split { grid-template-columns: 1fr; }
+  }
+
+  .service-split .card ul {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+  }
+
+  .service-split .card li { margin-bottom: 8px; }
+
+  .privacy-note {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--line);
+  }
+
+  .cta {
+    background: var(--indigo);
+    color: #fff;
+    border-radius: 16px;
+    padding: 48px 40px;
+    text-align: center;
+  }
+
+  :root:not([data-theme="light"]) .cta { color: #eef0f7; }
+
+  .cta h2 { color: #fff; margin-bottom: 12px; }
+  :root:not([data-theme="light"]) .cta h2 { color: #f5f6fb; }
+
+  .cta p {
+    color: rgba(255,255,255,0.8);
+    max-width: 46ch;
+    margin: 0 auto 28px;
+  }
+
+  .contact-block {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 20px 28px;
+  }
+
+  .contact-block a {
+    color: #fff;
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+  }
+
+  .contact-block a:hover { text-decoration: underline; }
+  .contact-block .clabel { color: rgba(255,255,255,0.6); font-size: 0.78rem; font-family: var(--font-mono); }
+
+  footer {
+    padding: 40px 0 80px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  a { color: var(--indigo); }
+
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">AI 海外品牌搜尋系統</div>
+    <h1>把找代理品牌的工作，<br><em>從好幾星期壓縮到幾分鐘</em></h1>
+    <p class="lede">
+      這套系統會自動搜尋符合條件的海外品牌、比對官網內容、查證台灣代理現況，
+      整理成一份可以直接拿去決策的 Excel 報表。可以直接安裝在貴公司電腦上使用，
+      您的搜尋內容與客戶資料完全不需要交給我們。
+    </p>
+    <div class="hero-stats">
+      <div class="stat"><b>300+</b><span>累積分析過的海外品牌</span></div>
+      <div class="stat"><b>15–20 分</b><span>線上實機示範時間</span></div>
+      <div class="stat"><b>3</b><span>種台灣代理狀態自動判斷</span></div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <span class="lead-label">背景</span>
+    <h2>這是為了解決真實痛點而做的</h2>
+    <div class="origin">
+      <p>
+        我們家經營海外品牌的台灣代理權開發，每次要拓展新品類，
+        都得一個人一個一個 Google 搜尋、逐一開啟官網確認產品內容，
+        再手動查證台灣是不是已經有人代理——常常花好幾天，
+        最後發現看中的品牌早就有人代理了。
+      </p>
+      <p>
+        <strong>這套系統就是為了解決這個問題而開發的</strong>，
+        現在我們自己每天都在用，累積下來已經分析過 300 多個海外品牌，
+        涵蓋美妝保養、戶外露營、玩具等多個品類。
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="lead-label">你是否也遇到這些問題</span>
+    <h2>找代理品牌，本來就不該這麼累</h2>
+    <ul class="problem-list">
+      <li>想開發新品牌代理，但每天光是用 Google 一個個搜尋、逐一開網站確認，就耗掉大半天</li>
+      <li>好不容易看中一個品牌，還要另外花時間查證台灣是不是已經有人代理，常常查到最後才發現白忙一場</li>
+      <li>想拓展到新的產品類別，卻不知道該從哪些關鍵字、哪些國家開始找起</li>
+      <li>篩出來的名單格式零散，沒辦法直接拿去比較、決策</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="lead-label">運作方式</span>
+    <h2>四個步驟，全程不需要人工介入</h2>
+    <div class="pipeline">
+      <span class="step">Google 搜尋</span><span class="arrow">→</span>
+      <span class="step">官網比對</span><span class="arrow">→</span>
+      <span class="step">AI 判斷</span><span class="arrow">→</span>
+      <span class="step">台灣代理查證</span><span class="arrow">→</span>
+      <span class="step">Excel 匯出</span>
+    </div>
+
+    <span class="lead-label">實際輸出範例（示意）</span>
+    <div class="table-scroll">
+      <table class="sample-table">
+        <thead>
+          <tr><th>品牌</th><th>國家</th><th>商品內容</th><th>台灣代理狀態</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Ekoorganik</td><td>Bulgaria</td><td>Rose Oil / Organic</td>
+            <td><span class="status-pill found">未找到代理證據</span></td>
+          </tr>
+          <tr>
+            <td>Alfaparf Milano</td><td>Italy</td><td>Professional Hair Care</td>
+            <td><span class="status-pill taken">已有官方代理</span></td>
+          </tr>
+          <tr>
+            <td>Duomo</td><td>Italy</td><td>Hair Color / Professional</td>
+            <td><span class="status-pill taken">疑似已有代理</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="lead-label">功能</span>
+    <div class="grid-2">
+      <div class="card">
+        <h3>🌐 多國語言搜尋</h3>
+        <p>同時處理多國語言關鍵字，不只搜英文網站，涵蓋歐洲、日韓等多語系品牌官網。</p>
+      </div>
+      <div class="card">
+        <h3>🔍 AI 品牌判斷</h3>
+        <p>自動判斷是否為官方品牌站、產品與定位是否吻合，排除電商平台與媒體報導。</p>
+      </div>
+      <div class="card">
+        <h3>🇹🇼 台灣代理查證</h3>
+        <p>直接標出「已有代理／疑似已有代理／未找到代理證據」，大幅縮小人工複核範圍。</p>
+      </div>
+      <div class="card">
+        <h3>📊 直接可用的報表</h3>
+        <p>結果自動整理成 Excel，含公司名稱、網站、產品內容、推薦分數，開了就能用。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="lead-label">合作方式</span>
+    <h2>軟體授權，安裝在您自己的電腦上</h2>
+    <div class="service-split">
+      <div class="card">
+        <h3>一次性授權</h3>
+        <ul>
+          <li>軟體使用授權，可安裝在貴公司電腦上使用</li>
+          <li>依貴公司產業客製化的預設搜尋範本</li>
+          <li>API 金鑰申請圖文教學，10-15 分鐘完成設定</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>定期維護服務</h3>
+        <ul>
+          <li>授權續期，不需重新安裝</li>
+          <li>搜尋條件調整、系統更新</li>
+          <li>安裝與操作問題直接找我，不會卡在客服流程</li>
+        </ul>
+      </div>
+    </div>
+    <p class="privacy-note">
+      您的搜尋內容、客戶資料完全不需要交給我們——軟體安裝在您自己的電腦上，
+      搜尋所用的 API 帳號也是您自己申請、直接向該服務商付費，我們完全看不到您的使用內容。
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap cta">
+    <h2>想看看實際搜尋一個品類的速度與結果？</h2>
+    <p>15-20 分鐘的線上展示，現場搜尋一個您感興趣的品類，直接看結果品質。</p>
+    <div class="contact-block">
+      <span class="clabel">聯絡方式</span>
+      <a href="tel:0903277029">📞 0903-277-029</a>
+      <a href="mailto:david7471906@gmail.com">✉️ david7471906@gmail.com</a>
+      <span class="clabel">LINE</span>
+      <span style="font-family: var(--font-mono); font-size: 0.95rem;">3844072kk</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  劉冠昕 · AI 海外品牌搜尋系統
+</footer>
+
+</body>
+</html>

@@ -12,6 +12,7 @@ import time
 import pandas as pd
 import streamlit as st
 
+from config import DEFAULT_CONFIG, DEFAULT_SEARCH_PROFILE
 from modules import app_logic
 from modules.search_profile import REGION_COUNTRIES
 from modules.search_pipeline import (
@@ -107,6 +108,26 @@ st.set_page_config(
 )
 
 
+license_status = app_logic.check_license()
+
+if not license_status["valid"]:
+    st.error(
+        f"⛔ 授權驗證失敗：{license_status['message']}"
+    )
+    st.stop()
+
+if (
+    license_status["days_remaining"] is not None
+    and license_status["days_remaining"]
+    <= app_logic.RENEWAL_WARNING_DAYS
+):
+    st.warning(
+        f"⚠️ 授權將於 {license_status['expires_at']} 到期"
+        f"（剩餘 {license_status['days_remaining']} 天），"
+        "請聯繫供應商續約。"
+    )
+
+
 @st.cache_resource
 def get_shared_run_state() -> dict:
     """
@@ -177,7 +198,7 @@ def render_search_tab() -> None:
     st.text_input(
         "這次搜尋的名稱／描述（給自己看的，不影響搜尋邏輯）",
         value=st.session_state.get(
-            "query_text", "歐洲有機天然洗髮精"
+            "query_text", DEFAULT_SEARCH_PROFILE.query
         ),
         key="query_text",
     )
@@ -189,7 +210,9 @@ def render_search_tab() -> None:
             "商品詞（請輸入英文，用逗號分隔，例如：shampoo, conditioner, hair care）",
             value=st.session_state.get(
                 "product_keywords_text",
-                "shampoo, conditioner, hair care, scalp care",
+                ", ".join(
+                    DEFAULT_SEARCH_PROFILE.product_keywords
+                ),
             ),
             key="product_keywords_text",
             height=80,
@@ -216,7 +239,9 @@ def render_search_tab() -> None:
             "排除詞（選填，請輸入英文，例如：nail, packaging）",
             value=st.session_state.get(
                 "excluded_keywords_text",
-                "hair removal, beauty equipment, packaging, nail, eyelash",
+                ", ".join(
+                    DEFAULT_SEARCH_PROFILE.excluded_keywords
+                ),
             ),
             key="excluded_keywords_text",
             height=80,
@@ -227,7 +252,9 @@ def render_search_tab() -> None:
             "定位詞（請輸入英文，用逗號分隔，例如：organic, natural, vegan）",
             value=st.session_state.get(
                 "positioning_keywords_text",
-                "organic, natural, vegan",
+                ", ".join(
+                    DEFAULT_SEARCH_PROFILE.positioning_keywords
+                ),
             ),
             key="positioning_keywords_text",
             height=80,
@@ -247,6 +274,21 @@ def render_search_tab() -> None:
                 "例如 organic, natural, vegan，否則同樣幾乎找不到結果。"
             )
 
+        st.checkbox(
+            "候選網站必須符合上面填寫的定位詞",
+            value=st.session_state.get(
+                "require_positioning_match", True
+            ),
+            key="require_positioning_match",
+            help=(
+                "預設開啟：只留下明確符合定位詞（例如 organic/"
+                "natural）的品牌。想找不特別強調某種定位的一般"
+                "傳統品牌時，可以取消勾選，同時把上面定位詞欄位"
+                "清空——拿掉這個限制常常能找到原本被定位詞篩掉"
+                "的新品牌。"
+            ),
+        )
+
         st.multiselect(
             "地區（可複選；不選代表不限制地區）",
             options=(
@@ -254,7 +296,12 @@ def render_search_tab() -> None:
                 + sorted(REGION_COUNTRIES.keys())
             ),
             default=st.session_state.get(
-                "selected_regions", ["europe"]
+                "selected_regions",
+                [
+                    region.lower()
+                    for region in DEFAULT_SEARCH_PROFILE.included_regions
+                ]
+                or [app_logic.NO_REGION_LABEL],
             ),
             key="selected_regions",
             format_func=lambda option: (
@@ -266,7 +313,10 @@ def render_search_tab() -> None:
         st.text_input(
             "只包含以下國家（用逗號分隔，選填）",
             value=st.session_state.get(
-                "included_countries_text", ""
+                "included_countries_text",
+                ", ".join(
+                    DEFAULT_SEARCH_PROFILE.included_countries
+                ),
             ),
             key="included_countries_text",
             help=(
@@ -300,35 +350,49 @@ def render_search_tab() -> None:
         st.text_input(
             "排除以下國家（用逗號分隔，選填）",
             value=st.session_state.get(
-                "excluded_countries_text", ""
+                "excluded_countries_text",
+                ", ".join(
+                    DEFAULT_SEARCH_PROFILE.excluded_countries
+                ),
             ),
             key="excluded_countries_text",
         )
 
     st.subheader("2. 執行設定")
 
-    st.radio(
-        "資料來源",
-        options=app_logic.SOURCE_OPTIONS,
-        index=app_logic.SOURCE_OPTIONS.index(
-            st.session_state.get(
-                "selected_source",
-                app_logic.SOURCE_OPTION_BOTH,
-            )
-        ),
-        key="selected_source",
-        help=(
-            "只用 Google 搜尋：不查三大展覽官方名錄，"
-            "省下展覽端的分析與台灣代理查證用量。\n\n"
-            "只用展覽名錄：不執行 Google 搜尋，"
-            "省下 Google 端的 SerpAPI 查詢用量，"
-            "只用 Asia／North America／Bologna "
-            "官方名錄本身收錄的公司。"
-        ),
-        horizontal=True,
-    )
+    if app_logic.EXHIBITION_SOURCE_AVAILABLE:
+        st.radio(
+            "資料來源",
+            options=app_logic.SOURCE_OPTIONS,
+            index=app_logic.SOURCE_OPTIONS.index(
+                st.session_state.get(
+                    "selected_source",
+                    app_logic.DEFAULT_SOURCE_OPTION,
+                )
+            ),
+            key="selected_source",
+            help=(
+                "只用 Google 搜尋：不查三大展覽官方名錄，"
+                "省下展覽端的分析與台灣代理查證用量。\n\n"
+                "只用展覽名錄：不執行 Google 搜尋，"
+                "省下 Google 端的 SerpAPI 查詢用量，"
+                "只用 Asia／North America／Bologna "
+                "官方名錄本身收錄的公司。"
+            ),
+            horizontal=True,
+        )
 
-    render_exhibition_freshness()
+        render_exhibition_freshness()
+
+    else:
+        st.session_state["selected_source"] = (
+            app_logic.DEFAULT_SOURCE_OPTION
+        )
+
+        st.caption(
+            "資料來源：Google 搜尋（此版本未包含展覽名錄模組，"
+            "為選配功能，如需啟用請聯繫我們加購）"
+        )
 
     col_a, col_b, col_c = st.columns(3)
 
@@ -338,7 +402,8 @@ def render_search_tab() -> None:
             min_value=1,
             max_value=500,
             value=st.session_state.get(
-                "target_count", 10
+                "target_count",
+                DEFAULT_CONFIG.target_count,
             ),
             key="target_count",
         )

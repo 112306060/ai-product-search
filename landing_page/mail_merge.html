@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代理商開發信寄送助手</title>
+<meta name="description" content="海外品牌代理商推銷信寄送助手：一鍵開啟 Gmail 草稿，複製信件內容後即可送出">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #f6f3ee;
+    --surface: #ffffff;
+    --surface-alt: #efe9de;
+    --ink: #2a2620;
+    --ink-soft: #6b6459;
+    --muted: #948c7c;
+    --line: #ddd6c8;
+    --accent: #1f6f78;
+    --accent-ink: #ffffff;
+    --accent-soft: #e4f0ef;
+    --good: #3f7d5c;
+    --good-soft: #e5f0ea;
+    --warn: #a3612f;
+    --warn-soft: #f5e9df;
+    --font-display: 'Newsreader', 'Noto Serif TC', serif;
+    --font-body: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191c;
+      --surface: #1f2226;
+      --surface-alt: #262a2f;
+      --ink: #ece8de;
+      --ink-soft: #b8b3a6;
+      --muted: #837d70;
+      --line: #34383d;
+      --accent: #5fb8c0;
+      --accent-ink: #10282a;
+      --accent-soft: #1d3336;
+      --good: #6fbf96;
+      --good-soft: #1c2f27;
+      --warn: #e08a68;
+      --warn-soft: #33251d;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #17191c;
+    --surface: #1f2226;
+    --surface-alt: #262a2f;
+    --ink: #ece8de;
+    --ink-soft: #b8b3a6;
+    --muted: #837d70;
+    --line: #34383d;
+    --accent: #5fb8c0;
+    --accent-ink: #10282a;
+    --accent-soft: #1d3336;
+    --good: #6fbf96;
+    --good-soft: #1c2f27;
+    --warn: #e08a68;
+    --warn-soft: #33251d;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  header {
+    margin-bottom: 32px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.7rem, 4vw, 2.3rem);
+    line-height: 1.3;
+    text-wrap: balance;
+    margin: 0 0 12px;
+  }
+
+  .lede {
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  .howto {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 24px 0 32px;
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+
+  .howto ol {
+    margin: 8px 0 0;
+    padding-left: 20px;
+  }
+
+  .howto li { margin-bottom: 4px; }
+
+  .draft-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 40px;
+  }
+
+  .draft-panel h2 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  .draft-panel .subject-line {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+
+  .draft-body {
+    white-space: pre-wrap;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    background: var(--surface-alt);
+    border-radius: 8px;
+    padding: 16px 18px;
+    max-height: 260px;
+    overflow-y: auto;
+    margin-bottom: 14px;
+  }
+
+  button.copy-btn {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    cursor: pointer;
+  }
+
+  button.copy-btn:hover { filter: brightness(1.08); }
+  button.copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  button.copy-btn[data-state="copied"] {
+    background: var(--good);
+  }
+
+  .list-heading {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .list-heading .count {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--ink);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  .row-list {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 44px;
+  }
+
+  .row {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px 16px;
+    align-items: center;
+  }
+
+  .row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .row-name {
+    font-weight: 600;
+    font-size: 0.98rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .row-email {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    word-break: break-all;
+  }
+
+  .row-note {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .badge.high { background: var(--good-soft); color: var(--good); }
+  .badge.mid { background: var(--warn-soft); color: var(--warn); }
+
+  .row-action a {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    color: var(--accent-ink);
+    background: var(--accent);
+    padding: 8px 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+    display: inline-block;
+  }
+
+  .row-action a:hover { filter: brightness(1.08); }
+
+  .row.done {
+    opacity: 0.6;
+  }
+
+  .row.done .row-action {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--good);
+    padding: 8px 4px;
+  }
+
+  details {
+    margin-bottom: 44px;
+  }
+
+  summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 6px 0;
+  }
+
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  details .row-list { margin-top: 14px; }
+
+  footer {
+    font-size: 0.82rem;
+    color: var(--muted);
+    border-top: 1px dashed var(--line);
+    padding-top: 20px;
+  }
+
+  @media (max-width: 560px) {
+    .row { grid-template-columns: 1fr; }
+    .row-action { justify-self: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">寄信助手</div>
+    <h1>寵物用品代理商開發信</h1>
+    <p class="lede">
+      這頁幫你把寵物用品這批名單的 Gmail 草稿開好——收件人跟主旨都先填好，
+      你只需要複製下面的信件內容貼上，看過一遍再按送出。這版已經加上「免費試用 3 天」。
+      母嬰用品那批已經寄完，收合在下方「歷史批次」裡供對照。
+    </p>
+  </header>
+
+  <div class="howto">
+    這頁不會、也沒辦法幫你直接送出信件（沒有你的 Gmail 帳號權限）。實際流程：
+    <ol>
+      <li>先按「複製信件內容」把整封信文字複製起來</li>
+      <li>再按每家公司旁的「用 Gmail 開啟」，會在新分頁開出已登入帳號的草稿（收件人、主旨已填好）</li>
+      <li>在草稿內文欄位貼上（Ctrl+V），看過一遍，按送出</li>
+    </ol>
+  </div>
+
+  <div class="draft-panel">
+    <h2>信件內容（10 家共用同一份）</h2>
+    <div class="subject-line">主旨：免費試用 3 天——讓 AI 幫您快速找到下一個代理品牌</div>
+    <div class="draft-body" id="draftBody">貴公司您好，
+
+您是否也遇到過這些問題？
+
+- 想開發新品牌代理，但每天光是用 Google 一個個搜尋、逐一開啟網站確認，就耗掉大半天？
+- 好不容易看中一個品牌，還要另外花時間查證台灣是不是已經有人代理，常常查到最後才發現白忙一場？
+- 想拓展到新的產品類別，卻不知道該從哪些關鍵字、哪些國家開始找起？
+- 篩出來的名單格式零散，沒辦法直接拿去比較、決策？
+
+如果以上任何一項讓你點頭，你缺的可能不是更多人力，而是一套工具。
+
+我們開發的 AI 搜尋系統可以同時處理多國語言關鍵字、比對品牌官網內容、查證台灣代理現況，一次搜尋就能找出數十家符合條件的海外品牌，並直接標出每一家「台灣已有代理／疑似已有代理／未有代理」，整理成一份可以直接拿去決策的 Excel 報表，原本要花上好幾星期的人工作業，使用這套 AI 搜尋系統，壓縮到幾分鐘就能完成。
+
+產品介紹與實際案例：https://landingpage-khaki-eight.vercel.app
+
+【免費試用 3 天】如果您也在做寵物用品的海外品牌代理，現在可以直接免費試用這套系統 3 天——安裝在貴公司電腦上，用您自己感興趣的品類實際搜尋看看，滿意再談後續授權，不滿意也不會有任何損失。您的搜尋內容、客戶資料完全不需要交給我們。
+
+試用期滿後，我們提供軟體授權 + 定期資料維護服務（包含搜尋條件調整、系統更新），讓您不用自己養工程師團隊，就能擁有這套「找品牌供應商」的能力。
+
+請留下您的資訊，方便我幫您安排 3 天免費試用。
+
+劉冠昕／0903-277-029｜david7471906@gmail.com｜LINE ID: 3844072kk</div>
+    <button class="copy-btn" id="copyBtn" type="button">複製信件內容</button>
+  </div>
+
+  <p class="list-heading"><span class="count">10</span> 家待寄</p>
+  <div class="row-list" id="pendingList"></div>
+
+  <details>
+    <summary>歷史批次：母嬰用品（20 家，已全部處理完畢）</summary>
+    <div class="row-list">
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">翊迪股份有限公司</div>
+          <div class="row-note">Cybex／gb 台灣總代理（9/5，經 Gmail 寄件備份核對確認）</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">富俐達國際有限公司（FLD Co.）</div>
+          <div class="row-note">代理 little.b、little pasta、bebefood 等（9/5，經 Gmail 寄件備份核對確認）</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">俏媽咪婦幼親子館</div>
+          <div class="row-note">代理 Maxi-Cosi、Safety Baby、Britax Römer 等（9/5，經 Gmail 寄件備份核對確認）</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">美美加國際股份有限公司</div>
+          <div class="row-note">專業背巾經銷商（9/5，經 Gmail 寄件備份核對確認）</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">艾碩貿易有限公司（La nube 親子選物）</div>
+          <div class="row-note">代理韓／日／澳多國童鞋童裝品牌（9/5，經 Gmail 寄件備份核對確認）</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">漫延有限公司（Diffusion）</div>
+          <div class="row-note">代理 BABE實驗室、Babybrezza（9/5，經 Gmail 寄件備份核對確認）</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">Yuehze International（悅澤國際）</div>
+          <div class="row-note">代理澳洲 Purebaby、日本 Amorosa Mamma 等（9/5，經 Gmail 寄件備份核對確認）</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">美國寶寶購物網（Baby Americano）</div>
+          <div class="row-note">多品牌進口母嬰選物（9/5，經 Gmail 寄件備份核對確認）</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">杏豐實業股份有限公司</div>
+          <div class="row-note">義大利 Chicco／德國 NUK 台灣總代理</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">久酉創意生活國際企業（JIOUU）</div>
+          <div class="row-note">西班牙 BABYBITES 台灣獨家代理</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">安琪兒婦嬰百貨（AngelBaby）</div>
+          <div class="row-note">代理 ABC Design、Cybex、Jolly、Nuna、Osann 等</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">mini bambini（搖籃創意貿易）</div>
+          <div class="row-note">代理 Angel Dear、Zoli、Bebe Au Lait、Goumikids 等</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">翔盛國際（baby888）</div>
+          <div class="row-note">代理 BABY JOGGER、BUGABOO、JOOLZ、UNILOVE 等</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">貝恩企業有限公司（Baan）</div>
+          <div class="row-note">代理進口德系婦嬰保養品</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">宥和企業有限公司</div>
+          <div class="row-note">代理韓國天然嬰幼兒品牌</div>
+        </div>
+        <div class="row-action">已寄出</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">BabyGarden</div>
+          <div class="row-note">代理 Shnuggle、Bibado、Najell 等</div>
+        </div>
+        <div class="row-action">已處理</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">瑪雅邁麥社（MayaDK）</div>
+          <div class="row-note">自稱「丹麥母嬰代理商」，代理 Mushie、FRIGG</div>
+        </div>
+        <div class="row-action">已處理</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">朶玫黎國際數位行銷（Tomali）</div>
+          <div class="row-note">代理 10+ 個歐美/亞洲品牌</div>
+        </div>
+        <div class="row-action">已處理</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">科育有限公司（Mamas & Papas TW）</div>
+          <div class="row-note">代理 Mamas & Papas、B.toys、Radio Flyer、Silver Cross 等</div>
+        </div>
+        <div class="row-action">已處理</div>
+      </div>
+      <div class="row done">
+        <div class="row-main">
+          <div class="row-name">斑富比股份有限公司（LOVON）</div>
+          <div class="row-note">官網說法稍矛盾，已發信觀察</div>
+        </div>
+        <div class="row-action">已處理</div>
+      </div>
+    </div>
+  </details>
+
+  <footer>
+    產品介紹頁：<a href="https://landingpage-khaki-eight.vercel.app" style="color:var(--accent)">landingpage-khaki-eight.vercel.app</a>　·　此頁僅供個人寄信使用，不會上傳或儲存任何資料。
+  </footer>
+
+</div>
+
+<script>
+  const SUBJECT = '免費試用 3 天——讓 AI 幫您快速找到下一個代理品牌';
+
+  const companies = [
+    { name: '亞寵國際商業管理顧問有限公司', email: 'allan.mei@msa.hinet.net', note: '代理 LINE FRIENDS、加菲貓、挪威 Atlantic Delights、德國 cdVet、日本 ICHISE 等 10+ 品牌', confidence: 'high' },
+    { name: '韋民企業股份有限公司（Appreciate Corp）', email: '', contactUrl: 'https://www.appreciatecorp.com', linkLabel: '查看官網／致電', note: '電話 02-2924-6694（無明碼email）。代理美國 Starmark、日本 Petio／Taurus／Richell／Lion、韓國 Forcans', confidence: 'high' },
+    { name: '台灣寵物用品有限公司', email: '', contactUrl: 'https://www.twnpet.com/inquiry.asp', note: '代理 West Paw、Petmate、JW、Chuckit（美）、Cat\'s Best（德）、CIAO（日）等多國品牌', confidence: 'high' },
+    { name: '祥翼寵物有限公司（寵菜市場／瀚翔寵物／豪翼行銷）', email: 'service@petfoodmarket.tw', note: '代理 Orijen、ACANA（加拿大）、Wish Bone（紐西蘭）、THE DOG & CAT（韓國）', confidence: 'high' },
+    { name: '寵小就來', email: 'apac.pets@gmail.com', note: '代理 Royal Canin、Farmina、Orijen 等（偏零售定位）', confidence: 'mid' },
+    { name: '萬倍富寵物飼料批發', email: '', contactUrl: 'https://www.onepetfood.com.tw', linkLabel: '查看官網／加 LINE', note: '僅 LINE（@onepetfood）。代理 Addiction（紐西蘭）、Farmina（義大利）、Nutro', confidence: 'mid' },
+    { name: '台灣多格漫商貿股份有限公司（DoggyMan）', email: '', contactUrl: 'https://www.doggyman.com.tw', linkLabel: '查看官網／致電', note: '電話 04-2251-2289（無明碼email）。日本 DoggyMan 台灣總代理，官網明確標示原裝進口', confidence: 'high' },
+    { name: '湧風電子商務有限公司（meoof）', email: 'service@i-go.tw', note: 'meoof、PETLIBRO 智能餵食器／飲水機台灣總代理', confidence: 'high' },
+    { name: 'MR.AQUA 名人水族器材有限公司', email: '', contactUrl: 'https://www.mraqua.com.tw', linkLabel: '查看官網／致電', note: '電話 04-2566-7779（無明碼email，僅批發不零售）。代理 GEX、TROPICAL、HAGEN、SERA 等 20 個水族品牌', confidence: 'high' },
+    { name: '西高地水族（MIRU AQUA）', email: 'miru@miruaqua.com', note: '代理 JBL、Tetra、GEX、ISTA、ADA、SERA 等德日美 40+ 品牌', confidence: 'high' },
+  ];
+
+  const badgeLabel = { high: '高信心度', mid: '中信心度' };
+
+  function gmailComposeUrl(to, subject) {
+    const params = new URLSearchParams({ view: 'cm', fs: '1', to, su: subject });
+    return 'https://mail.google.com/mail/?' + params.toString();
+  }
+
+  const list = document.getElementById('pendingList');
+
+  companies.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    const main = document.createElement('div');
+    main.className = 'row-main';
+
+    const nameLine = document.createElement('div');
+    nameLine.className = 'row-name';
+    nameLine.textContent = c.name;
+
+    const badge = document.createElement('span');
+    badge.className = 'badge ' + c.confidence;
+    badge.textContent = badgeLabel[c.confidence];
+    nameLine.appendChild(badge);
+
+    main.appendChild(nameLine);
+
+    if (c.email) {
+      const emailLine = document.createElement('div');
+      emailLine.className = 'row-email';
+      emailLine.textContent = c.email;
+      main.appendChild(emailLine);
+    }
+
+    const noteLine = document.createElement('div');
+    noteLine.className = 'row-note';
+    noteLine.textContent = c.note;
+    main.appendChild(noteLine);
+
+    row.appendChild(main);
+
+    const action = document.createElement('div');
+    action.className = 'row-action';
+
+    const link = document.createElement('a');
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+
+    if (c.email) {
+      link.href = gmailComposeUrl(c.email, SUBJECT);
+      link.textContent = '用 Gmail 開啟';
+    } else {
+      link.href = c.contactUrl;
+      link.textContent = c.linkLabel || '開啟聯絡表單';
+    }
+
+    action.appendChild(link);
+    row.appendChild(action);
+
+    list.appendChild(row);
+  });
+
+  const copyBtn = document.getElementById('copyBtn');
+  const draftBody = document.getElementById('draftBody');
+
+  copyBtn.addEventListener('click', async () => {
+    const text = draftBody.textContent;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      copyBtn.textContent = '已複製！';
+      copyBtn.dataset.state = 'copied';
+    } catch (err) {
+      const range = document.createRange();
+      range.selectNodeContents(draftBody);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      copyBtn.textContent = '已選取文字，請手動 Ctrl+C';
+      copyBtn.dataset.state = 'copied';
+    }
+
+    setTimeout(() => {
+      copyBtn.textContent = '複製信件內容';
+      delete copyBtn.dataset.state;
+    }, 2500);
+  });
+</script>
+
+</body>
+</html>

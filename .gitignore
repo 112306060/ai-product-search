@@ -51,3 +51,25 @@ __pycache__/
 # 打包交付用資料夾（用 build_release.py 隨時重新產生，
 # 內容含混淆後程式碼、可能複製了 .env／data/，不可進版控）
 dist_release/
+
+# 授權簽章私鑰——絕對不能進版控、絕對不能外流，
+# 誰拿到這把私鑰誰就能自己簽發合法的授權檔案。
+keys/
+
+# 各客戶專屬的授權檔案（含開發用的本機授權），
+# 每個客戶的 license.lic 都不一樣，不應該進版控。
+license.lic
+
+# 授權防時間回撥用的本機狀態檔
+data/.license_state.json
+
+# 真實業務往來文件與測試/除錯用資料——
+# repo 是公開的（面試用連結），這些不該讓外部看到，
+# 也跟軟體本身無關，不需要進版控。
+data/*.pdf
+data/output_demo.xlsx
+data/篩選結果*.xlsx
+data/bologna_debug/
+data/exhibitions/*_before_details.json
+data/exhibitions/*_before_full_sync.json
+data/exhibitions/*_detail_progress.json
